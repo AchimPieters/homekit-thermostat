@@ -1,5 +1,5 @@
 HOMEKIT_ACCESSORY_CATEGORY = 9 # Thermostat
-HOMEKIT_SETUP_CODE = 343-10-202
+HOMEKIT_SETUP_CODE = 343-10-202 # TODO load these  dynamically from sdkconfig
 HOMEKIT_SETUP_ID = XY38
 
 qrcode/homekit:

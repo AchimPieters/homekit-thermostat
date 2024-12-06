@@ -1,2 +1,6 @@
-idf_component_register(SRCS "main.c"
-                    INCLUDE_DIRS ".")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWOLFSSL_USER_SETTINGS")
+
+idf_component_register(
+    SRCS "main.c"
+    REQUIRES freertos esp_wifi nvs_flash driver esp32-homekit sht4x
+)

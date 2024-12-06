@@ -1,6 +1,6 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.adapterTargetName": "esp32",
+  "idf.adapterTargetName": "esp32c6",
   "idf.customExtraPaths": "/Users/jozefcipa/.espressif/tools/xtensa-esp-elf-gdb/14.2_20240403/xtensa-esp-elf-gdb/bin:/Users/jozefcipa/.espressif/tools/riscv32-esp-elf-gdb/14.2_20240403/riscv32-esp-elf-gdb/bin:/Users/jozefcipa/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin:/Users/jozefcipa/.espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin:/Users/jozefcipa/.espressif/tools/esp32ulp-elf/2.38_20240113/esp32ulp-elf/bin:/Users/jozefcipa/.espressif/tools/cmake/3.30.2/CMake.app/Contents/bin:/Users/jozefcipa/.espressif/tools/openocd-esp32/v0.12.0-esp32-20241016/openocd-esp32/bin:/Users/jozefcipa/.espressif/tools/ninja/1.12.1:/Users/jozefcipa/.espressif/tools/esp-rom-elfs/20240305",
   "idf.customExtraVars": {
     "OPENOCD_SCRIPTS": "/Users/jozefcipa/.espressif/tools/openocd-esp32/v0.12.0-esp32-20241016/openocd-esp32/share/openocd/scripts",
@@ -8,9 +8,33 @@
   },
   "idf.espIdfPath": "/Users/jozefcipa/esp/v5.3/esp-idf",
   "idf.openOcdConfigs": [
-    "board/esp32-wrover-kit-3.3v.cfg"
+    "board/esp32c6-lpcore-builtin.cfg"
   ],
-  "idf.port": "/dev/tty.JBLFlip5",
+  "idf.port": "/dev/tty.usbmodem101",
   "idf.pythonBinPath": "/Users/jozefcipa/.espressif/python_env/idf5.3_py3.12_env/bin/python",
-  "idf.toolsPath": "/Users/jozefcipa/.espressif"
+  "idf.toolsPath": "/Users/jozefcipa/.espressif",
+  "files.associations": {
+    "stdio.h": "c",
+    "led_strip.h": "c",
+    "esp_mac.h": "c",
+    "sht4x.h": "c",
+    "system_error": "c",
+    "chrono": "c",
+    "typeinfo": "c",
+    "ssl.h": "c",
+    "chacha20_poly1305.h": "c",
+    "srp.h": "c",
+    "*.tcc": "cpp",
+    "charconv": "cpp",
+    "optional": "cpp",
+    "format": "cpp",
+    "ratio": "cpp",
+    "array": "cpp",
+    "functional": "cpp",
+    "regex": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp"
+  },
+  "idf.flashType": "JTAG"
 }
