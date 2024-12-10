@@ -10,6 +10,9 @@
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
 #include <sht4x.h>
+#include <esp_system.h>
+#include <string.h>
+#include <esp_err.h>
 
 // Custom error handling macro
 #define CHECK_ERROR(x) do {                        \
@@ -79,11 +82,16 @@ static bool heater_on = false;
 
 static bool led_on = false;
 
-#define TEMPERATURE_POLL_PERIOD 10000
-#define HEATER_FAN_DELAY 3000
-#define COOLER_FAN_DELAY 0
+// #define TEMPERATURE_POLL_PERIOD 10000 // 10s
+// #define HEATER_FAN_DELAY 3000
+// #define COOLER_FAN_DELAY 0
 
 static void heater_write(bool on) {
+        if (on) {
+                ESP_LOGI("INFORMATION", "Turning HEATER on");
+        } else {
+                ESP_LOGI("INFORMATION", "Turning HEATER off");
+        }
         gpio_set_level(HEATER_GPIO, on ? 1 : 0);
 }
 
@@ -137,7 +145,15 @@ homekit_characteristic_t heating_threshold = HOMEKIT_CHARACTERISTIC_(HEATING_THR
 homekit_characteristic_t current_humidity = HOMEKIT_CHARACTERISTIC_(CURRENT_RELATIVE_HUMIDITY, 0);
 
 static void update_state() {
-        // TODO: figure out these conditions
+        
+        // TODO: rewrite and simplify this logic
+
+        // Target Heating Cooling State (See 9.119 in Homekit Protocol PDF)
+        // 0 = OFF
+        // 1 = ”Heat. If the current temperature is below the target temperature then turn on heating.”
+        // 2 = ”Cool. If the current temperature is above the target temperature then turn on cooling.”
+        // 3 = ”Auto. Turn on heating or cooling to maintain temperature within the heating and cooling threshold of the target temperature.”
+
         uint8_t state = target_state.value.int_value;
         if ((state == 1 && current_temperature.value.float_value < target_temperature.value.float_value) ||
             (state == 3 && current_temperature.value.float_value < heating_threshold.value.float_value)) {
@@ -160,7 +176,7 @@ static void update_state() {
                         heater_write(false);
                         // vTaskDelay(pdMS_TO_TICKS(COOLER_FAN_DELAY));
                         // fan_write(true);
-                        // ESP_LOGI("INFORMATION", "Cooler On");
+                        ESP_LOGI("INFORMATION", "Heater Off, Cooler On");
                 }
         } else {
                 if (current_state.value.int_value != 0) {
@@ -169,7 +185,7 @@ static void update_state() {
                         // cooler_write(false);
                         heater_write(false);
                         // fan_write(false);
-                        ESP_LOGI("INFORMATION", "Off");
+                        ESP_LOGI("INFORMATION", "Everything Off");
                 }
         }
 }
@@ -217,7 +233,6 @@ homekit_characteristic_t serial = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, DEVICE_
 homekit_characteristic_t model = HOMEKIT_CHARACTERISTIC_(MODEL, DEVICE_MODEL);
 homekit_characteristic_t revision = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION, FW_VERSION);
 
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverride-init"
 homekit_accessory_t *accessories[] = {
@@ -232,7 +247,7 @@ homekit_accessory_t *accessories[] = {
                         NULL
                 }),
                 HOMEKIT_SERVICE(THERMOSTAT, .primary=true, .characteristics=(homekit_characteristic_t*[]) {
-                        HOMEKIT_CHARACTERISTIC(NAME, "HomeKit Thermostat"), // TODO: where is this NAME from
+                        HOMEKIT_CHARACTERISTIC(NAME, "HomeKit Thermostat"),
                         &current_temperature,
                         &target_temperature,
                         &current_state,
@@ -261,6 +276,36 @@ static void on_wifi_ready() {
         homekit_server_init(&config);
 }
 
+
+
+#ifndef APP_CPU_NUM
+#define APP_CPU_NUM PRO_CPU_NUM
+#endif
+
+static sht4x_t dev;
+
+void measure_temp(void *pvParameters)
+{
+    float temperature;
+    float humidity;
+
+    TickType_t last_wakeup = xTaskGetTickCount();
+
+    while (1)
+    {
+        // perform one measurement and do something with the results
+        ESP_ERROR_CHECK(sht4x_measure(&dev, &temperature, &humidity));
+        printf("sht4x Sensor: %.2f °C, %.2f %%\n", temperature, humidity);
+
+        // wait until 5 seconds are over
+        vTaskDelayUntil(&last_wakeup, pdMS_TO_TICKS(5000));
+    }
+}
+
+// TODO: define these in Kconfig
+#define CONFIG_EXAMPLE_I2C_MASTER_SDA 6
+#define CONFIG_EXAMPLE_I2C_MASTER_SCL 7
+
 void app_main(void) {
         esp_err_t ret = nvs_flash_init();
         if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -273,4 +318,12 @@ void app_main(void) {
         wifi_init();
         gpio_init();
         temperature_sensor_init();
+
+        ESP_ERROR_CHECK(i2cdev_init());
+        memset(&dev, 0, sizeof(sht4x_t));
+
+        ESP_ERROR_CHECK(sht4x_init_desc(&dev, 0, CONFIG_EXAMPLE_I2C_MASTER_SDA, CONFIG_EXAMPLE_I2C_MASTER_SCL));
+        ESP_ERROR_CHECK(sht4x_init(&dev));
+
+        xTaskCreatePinnedToCore(measure_temp, "sht4x_test", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM);
 }
