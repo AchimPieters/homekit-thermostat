@@ -284,6 +284,12 @@ static void on_wifi_ready() {
 
 static sht4x_t dev;
 
+bool relayOn = false;
+// TODO: define these in Kconfig
+#define CONFIG_EXAMPLE_I2C_MASTER_SDA 6
+#define CONFIG_EXAMPLE_I2C_MASTER_SCL 7
+#define RELAY_GPIO 3 // TODO set
+
 void measure_temp(void *pvParameters)
 {
     float temperature;
@@ -297,14 +303,20 @@ void measure_temp(void *pvParameters)
         ESP_ERROR_CHECK(sht4x_measure(&dev, &temperature, &humidity));
         printf("sht4x Sensor: %.2f °C, %.2f %%\n", temperature, humidity);
 
+        if (relayOn) {
+                printf("turning relay OFF");
+                gpio_set_level(RELAY_GPIO, 0);
+                relayOn = false;
+        } else {
+                 printf("turning relay ON");
+                 gpio_set_level(RELAY_GPIO, 1);
+                 relayOn = true;
+        }
+
         // wait until 5 seconds are over
         vTaskDelayUntil(&last_wakeup, pdMS_TO_TICKS(5000));
     }
 }
-
-// TODO: define these in Kconfig
-#define CONFIG_EXAMPLE_I2C_MASTER_SDA 6
-#define CONFIG_EXAMPLE_I2C_MASTER_SCL 7
 
 void app_main(void) {
         esp_err_t ret = nvs_flash_init();
@@ -325,5 +337,8 @@ void app_main(void) {
         ESP_ERROR_CHECK(sht4x_init_desc(&dev, 0, CONFIG_EXAMPLE_I2C_MASTER_SDA, CONFIG_EXAMPLE_I2C_MASTER_SCL));
         ESP_ERROR_CHECK(sht4x_init(&dev));
 
+        gpio_set_direction(RELAY_GPIO, GPIO_MODE_OUTPUT);
+        
         xTaskCreatePinnedToCore(measure_temp, "sht4x_test", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM);
+
 }
