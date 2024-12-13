@@ -48,7 +48,10 @@
     "esp_event.h": "c",
     "error_handler.h": "c",
     "sht40.h": "c",
-    "esp_err.h": "c"
+    "esp_err.h": "c",
+    "homekit.h": "c",
+    "err.h": "c",
+    "freertos.h": "c"
   },
   "idf.flashType": "JTAG"
 }
