@@ -31,52 +31,36 @@ homekit_characteristic_t cooling_threshold = HOMEKIT_CHARACTERISTIC_(COOLING_THR
 homekit_characteristic_t heating_threshold = HOMEKIT_CHARACTERISTIC_(HEATING_THRESHOLD_TEMPERATURE, 15, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_update));
 
 void update_state() {
-  // TODO: rewrite and simplify this logic
-
   uint8_t state = target_state.value.int_value;
-  if ((state == THERMOSTAT_HEAT && current_temperature.value.float_value < target_temperature.value.float_value) ||
-      (state == THERMOSTAT_AUTO && current_temperature.value.float_value < heating_threshold.value.float_value))
-  {
-    if (current_state.value.int_value != THERMOSTAT_HEAT)
-    {
+
+  // If the thermostat is set to HEAT and the current temperature is < than the target temperature
+  // turn on the relay
+  if (state == THERMOSTAT_HEAT && current_temperature.value.float_value < target_temperature.value.float_value) {
+    if (current_state.value.int_value != THERMOSTAT_HEAT) {
       current_state.value = HOMEKIT_UINT8(THERMOSTAT_HEAT);
       homekit_characteristic_notify(&current_state, current_state.value);
+      ESP_LOGI("INFORMATION", "Turning heating ON");
       relay_on();
-      ESP_LOGI("INFORMATION", "Heater On");
     }
-  }
-  else if ((state == _THERMOSTAT_COOL && current_temperature.value.float_value > target_temperature.value.float_value) ||
-           (state == THERMOSTAT_AUTO && current_temperature.value.float_value > cooling_threshold.value.float_value))
-  {
-    if (current_state.value.int_value != _THERMOSTAT_COOL)
-    {
-      current_state.value = HOMEKIT_UINT8(_THERMOSTAT_COOL);
-      homekit_characteristic_notify(&current_state, current_state.value);
-      relay_off();
-      ESP_LOGI("INFORMATION", "Heater Off");
-    }
-  }
-  else
-  {
-    if (current_state.value.int_value != THERMOSTAT_OFF)
-    {
+  } else {
+    // Otherwise, if the relay is not already turned off, turn it off now
+    if (current_state.value.int_value != THERMOSTAT_OFF) {
       current_state.value = HOMEKIT_UINT8(THERMOSTAT_OFF);
       homekit_characteristic_notify(&current_state, current_state.value);
+      ESP_LOGI("INFORMATION", "Turning heating OFF");
       relay_off();
-      ESP_LOGI("INFORMATION", "Everything Off");
     }
   }
 }
 
-// TODO: what's up with this? 
 void accessory_identify(homekit_value_t _value) {
-  ESP_LOGI("INFORMATION", "Accessory identify");
+  ESP_LOGI("INFORMATION", "Accessory identified");
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverride-init"
 homekit_accessory_t *accessories[] = {
-  //  TODO: what is id = 1?
+  // .id = 1 -> https://github.com/maximkulkin/esp-homekit/issues/121
   HOMEKIT_ACCESSORY(.id = 1, .category = homekit_accessory_category_thermostats, .services = (homekit_service_t*[]) {
     HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics = (homekit_characteristic_t*[]) {
       &name,

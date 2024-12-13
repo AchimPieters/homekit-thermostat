@@ -12,7 +12,7 @@
 
  // TODO: increase to 30s / 1min?
  // TODO: add this to kconfig
-#define TEMPERATURE_POLL_PERIOD 10000 // 10s
+#define TEMPERATURE_POLL_PERIOD 3000 // 3s
 
 void measure_temperature_task(void *pvParameters) {
   struct TempHumidity temp_humid;
@@ -51,7 +51,3 @@ void app_main() {
   // Init Wifi connection
   wifi_init(&on_wifi_ready);
 }
-
-// TODO: next steps
-// - rewrite homekit handle state logic
-// - move configuration constants to the KConfig file
