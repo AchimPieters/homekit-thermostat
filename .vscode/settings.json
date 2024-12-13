@@ -10,7 +10,7 @@
   "idf.openOcdConfigs": [
     "board/esp32c6-lpcore-builtin.cfg"
   ],
-  "idf.port": "/dev/tty.usbmodem101",
+  "idf.port": "/dev/tty.usbmodem2101",
   "idf.pythonBinPath": "/Users/jozefcipa/.espressif/python_env/idf5.3_py3.12_env/bin/python",
   "idf.toolsPath": "/Users/jozefcipa/.espressif",
   "files.associations": {

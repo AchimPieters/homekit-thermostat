@@ -105,13 +105,13 @@ homekit_accessory_t *accessories[] = {
 };
 #pragma GCC diagnostic pop
 
-void homekit_init() {
-  homekit_server_config_t config = {
-      .accessories = accessories,
-      .password = CONFIG_ESP_SETUP_CODE,
-      .setupId = CONFIG_ESP_SETUP_ID,
-  };
+homekit_server_config_t config = {
+  .accessories = accessories,
+  .password = CONFIG_ESP_SETUP_CODE,
+  .setupId = CONFIG_ESP_SETUP_ID,
+};
 
+void homekit_init() {
   ESP_LOGI("INFORMATION", "Starting HomeKit server...");
   homekit_server_init(&config);
 }
