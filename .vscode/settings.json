@@ -36,7 +36,19 @@
     "type_traits": "cpp",
     "utility": "cpp",
     "cstdint": "cpp",
-    "semphr.h": "c"
+    "semphr.h": "c",
+    "characteristics.h": "c",
+    "string.h": "c",
+    "esp_system.h": "c",
+    "esp_bit_defs.h": "c",
+    "stdbool.h": "c",
+    "gpio.h": "c",
+    "task.h": "c",
+    "esp_wifi.h": "c",
+    "esp_event.h": "c",
+    "error_handler.h": "c",
+    "sht40.h": "c",
+    "esp_err.h": "c"
   },
   "idf.flashType": "JTAG"
 }
