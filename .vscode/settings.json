@@ -51,7 +51,22 @@
     "esp_err.h": "c",
     "homekit.h": "c",
     "err.h": "c",
-    "freertos.h": "c"
+    "freertos.h": "c",
+    "lvgl.h": "c",
+    "esp_lcd_panel_io.h": "c",
+    "spi_master.h": "c",
+    "param.h": "c",
+    "esp_lcd_touch_xpt2046.h": "c",
+    "compare": "cpp",
+    "esp_lcd_ili9341.h": "c",
+    "gui.h": "c",
+    "esp_lcd_panel_ops.h": "c",
+    "esp_lcd_panel_vendor.h": "c",
+    "esp_lcd_panel_dev.h": "c",
+    "esp_lcd_panel_ssd1306.h": "c",
+    "esp_lcd_panel_nt35510.h": "c",
+    "esp_timer.h": "c",
+    "lcd.h": "c"
   },
   "idf.flashType": "JTAG"
 }
