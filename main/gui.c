@@ -23,6 +23,8 @@ static const esp_timer_create_args_t lvgl_tick_timer_args = {
   .name = "lvgl_tick"
 };
 static esp_timer_handle_t lvgl_tick_timer = NULL;
+static lv_color_t *buf1, *buf2;
+static lv_indev_drv_t indev_drv;
 // UI objects
 static lv_obj_t *meter;
 static lv_obj_t *btn;
@@ -117,9 +119,9 @@ void gui_init(void) {
 
   // alloc draw buffers used by LVGL
   // it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized
-  lv_color_t *buf1 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
+  buf1 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
   assert(buf1);
-  lv_color_t *buf2 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
+  buf2 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
   assert(buf2);
 
   // initialize LVGL draw buffers
@@ -139,7 +141,6 @@ void gui_init(void) {
   ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000));
 
   // LVGL + TOUCH
-  static lv_indev_drv_t indev_drv;
   lv_indev_drv_init(&indev_drv);
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   indev_drv.disp = disp;

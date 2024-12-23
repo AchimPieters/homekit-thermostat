@@ -48,6 +48,17 @@ void app_main() {
   sht40_init();
   relay_init();
 
+  // Init display
+  lcd_init();
+  gui_init();
+  xTaskCreate(lvgl_timer_task, "LVGL timer", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
+
+  // Lock the mutex due to the LVGL APIs are not thread-safe
+  if (lvgl_lock(-1)) {
+    gui_render();
+    lvgl_unlock();
+  }
+
   // Init Wifi connection
   wifi_init(&on_wifi_ready);
 }

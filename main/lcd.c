@@ -1,5 +1,3 @@
-#include "lcd.h"
-
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 #include <esp_err.h>
@@ -11,6 +9,7 @@
 #include <esp_log.h>
 #include <lvgl.h>
 #include "gui.h"
+#include "lcd.h"
 
 esp_lcd_panel_handle_t lcd_panel_handle = NULL;
 esp_lcd_touch_handle_t lcd_touch_handle = NULL;
