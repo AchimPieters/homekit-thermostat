@@ -66,7 +66,8 @@
     "esp_lcd_panel_ssd1306.h": "c",
     "esp_lcd_panel_nt35510.h": "c",
     "esp_timer.h": "c",
-    "lcd.h": "c"
+    "lcd.h": "c",
+    "esp_log.h": "c"
   },
   "idf.flashType": "JTAG"
 }

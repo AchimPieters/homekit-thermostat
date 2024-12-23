@@ -19,7 +19,7 @@ void measure_temperature_task(void *pvParameters) {
 
   while (1) {
     temp_humid = sht40_measure_temp();
-    ESP_LOGI("INFORMATION", "Humidity: %.1f%% Temperature: %.1fC", temp_humid.humidity, temp_humid.temperature);
+    ESP_LOGI("SHT40", "Humidity: %.1f%% Temperature: %.1fC", temp_humid.humidity, temp_humid.temperature);
     homekit_update_temperature(temp_humid);
 
     vTaskDelay(pdMS_TO_TICKS(TEMPERATURE_POLL_PERIOD));

@@ -6,8 +6,10 @@
 #include <esp_err.h>
 #include <string.h>
 
+static const char *TAG = "WIFI";
+
 void wifi_restart() {
-  ESP_LOGI("INFORMATION", "Restarting WiFi...");
+  ESP_LOGI(TAG, "Restarting WiFi...");
   esp_wifi_stop();
   esp_wifi_start();
 }
@@ -29,10 +31,10 @@ void wifi_connect(void *arg, esp_event_base_t event_base, int32_t event_id, void
   void (*on_wifi_ready)(void) = (void (*)(void))arg;
 
   if (event_base == WIFI_EVENT && (event_id == WIFI_EVENT_STA_START || event_id == WIFI_EVENT_STA_DISCONNECTED)) {
-    ESP_LOGI("INFORMATION", "Connecting to WiFi...");
+    ESP_LOGI(TAG, "Connecting to WiFi...");
     esp_wifi_connect();
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-    ESP_LOGI("INFORMATION", "WiFi connected, IP obtained");
+    ESP_LOGI(TAG, "WiFi connected, IP obtained");
     on_wifi_ready();
   }
 }

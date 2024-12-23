@@ -9,6 +9,8 @@
 #include "relay.h"
 #include "sht40.h"
 
+static const char *TAG = "HOMEKIT";
+
 void update_state();
 
 void on_update(homekit_characteristic_t *ch, homekit_value_t value, void *context) {
@@ -39,7 +41,7 @@ void update_state() {
     if (current_state.value.int_value != THERMOSTAT_HEAT) {
       current_state.value = HOMEKIT_UINT8(THERMOSTAT_HEAT);
       homekit_characteristic_notify(&current_state, current_state.value);
-      ESP_LOGI("INFORMATION", "Turning heating ON");
+      ESP_LOGI(TAG, "Turning heating ON");
       relay_on();
     }
   } else {
@@ -47,14 +49,14 @@ void update_state() {
     if (current_state.value.int_value != THERMOSTAT_OFF) {
       current_state.value = HOMEKIT_UINT8(THERMOSTAT_OFF);
       homekit_characteristic_notify(&current_state, current_state.value);
-      ESP_LOGI("INFORMATION", "Turning heating OFF");
+      ESP_LOGI(TAG, "Turning heating OFF");
       relay_off();
     }
   }
 }
 
 void accessory_identify(homekit_value_t _value) {
-  ESP_LOGI("INFORMATION", "Accessory identified");
+  ESP_LOGI(TAG, "Accessory identified");
 }
 
 #pragma GCC diagnostic push
@@ -96,7 +98,7 @@ homekit_server_config_t config = {
 };
 
 void homekit_init() {
-  ESP_LOGI("INFORMATION", "Starting HomeKit server...");
+  ESP_LOGI(TAG, "Starting HomeKit server...");
   homekit_server_init(&config);
 }
 
