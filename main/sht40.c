@@ -1,6 +1,6 @@
 #include <sht4x.h>
 #include <string.h>
-#include "err.h"
+#include <esp_err.h>
 #include "sht40.h"
 
 // TODO: define these in Kconfig
@@ -10,17 +10,17 @@
 sht4x_t sensor;
 
 void sht40_init() {
-  handle_err(i2cdev_init());
+  ESP_ERROR_CHECK(i2cdev_init());
 
   memset(&sensor, 0, sizeof(sht4x_t));
 
-  handle_err(sht4x_init_desc(&sensor, 0, CONFIG_EXAMPLE_I2C_MASTER_SDA, CONFIG_EXAMPLE_I2C_MASTER_SCL));
-  handle_err(sht4x_init(&sensor));
+  ESP_ERROR_CHECK(sht4x_init_desc(&sensor, 0, CONFIG_EXAMPLE_I2C_MASTER_SDA, CONFIG_EXAMPLE_I2C_MASTER_SCL));
+  ESP_ERROR_CHECK(sht4x_init(&sensor));
 }
 
 struct TempHumidity sht40_measure_temp() {
   struct TempHumidity temp_humid = {};
-  handle_err(sht4x_measure(&sensor, &temp_humid.temperature, &temp_humid.humidity));
+  ESP_ERROR_CHECK(sht4x_measure(&sensor, &temp_humid.temperature, &temp_humid.humidity));
 
   return temp_humid;
 }

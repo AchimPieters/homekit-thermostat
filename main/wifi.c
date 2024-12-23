@@ -3,8 +3,8 @@
 #include <esp_wifi.h>
 #include <esp_log.h>
 #include <esp_system.h>
+#include <esp_err.h>
 #include <string.h>
-#include "err.h"
 
 void wifi_restart() {
   ESP_LOGI("INFORMATION", "Restarting WiFi...");
@@ -19,7 +19,7 @@ void wifi_handle_err(esp_err_t err) {
       wifi_restart();
       break;
     default:
-      handle_err(err);
+      ESP_ERROR_CHECK(err);
       break;
   }
 }
