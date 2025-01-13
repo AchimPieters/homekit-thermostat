@@ -52,10 +52,8 @@ static lv_obj_t *label_btn_decr;
 // Buttons
 static lv_obj_t *btn_incr;
 static lv_obj_t *btn_decr;
-enum ButtonType {
-  BUTTON_INCREASE,
-  BUTTON_DECREASE
-};
+// Button pressed callback function
+void (*btn_pressed_callback)(enum ButtonType type);
 
 bool lvgl_notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
   lv_disp_drv_t *disp_driver = (lv_disp_drv_t *) user_ctx;
@@ -106,7 +104,7 @@ void lvgl_timer_task(void *arg) {
 }
 
 // Display touch callback
-void lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
+static void lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
   // TODO(improvement): use interrupts instead of polling
   //  note - check if these readings are done by LVGL or by the driver itself, who's sending so many read requests?
   // printf("touch callback\n");
@@ -131,14 +129,14 @@ void lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
   }
 }
 
-
-static void event_handler(lv_event_t *e) {
-  printf("Button handler called\n");
-
+static void on_btn_pressed(lv_event_t *e) {
   lv_obj_t * btn = lv_event_get_target(e);
   enum ButtonType btn_type = (enum ButtonType) lv_obj_get_user_data(btn);
-  printf("Button: %s\n", btn_type == BUTTON_INCREASE ? "increase" : "decrease");
-  // TODO: implement code
+
+  // If the callback function is defined, call it
+  if (btn_pressed_callback != NULL) {
+    btn_pressed_callback(btn_type);
+  }
 }
 
 void gui_init(void) {
@@ -188,9 +186,9 @@ void gui_init(void) {
   lv_style_set_text_font(&style_font48, &lv_font_montserrat_48);
 }
 
-void create_btn(lv_obj_t *btn, lv_obj_t *lbl, enum ButtonType btn_type) {
+static void create_btn(lv_obj_t *btn, lv_obj_t *lbl, enum ButtonType btn_type) {
   btn = lv_btn_create(btns_cont);
-  lv_obj_add_event_cb(btn, event_handler, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btn, on_btn_pressed, LV_EVENT_CLICKED, NULL);
   lv_obj_set_size(btn, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_flex_grow(btn, 1);
   lv_obj_set_user_data(btn, (void *) btn_type);
@@ -227,27 +225,23 @@ void gui_render() {
   // add a target temperature label at the top
   label_targ_temp = lv_label_create(data_cont);
   lv_label_set_recolor(label_targ_temp, true);
-  lv_label_set_text(label_targ_temp, "#0096FF 23°C#");
   lv_obj_add_style(label_targ_temp, &style_font48, LV_PART_MAIN);
 
   // underneath, add a current temperature label
   // this label will grow to take all the available white space
   label_curr_temp = lv_label_create(data_cont);
   lv_label_set_recolor(label_curr_temp, true);
-  lv_label_set_text(label_curr_temp, "#FFBF00 22°C#\n#C0C0C0 heating#");
   lv_obj_add_style(label_curr_temp, &style_font26, LV_PART_MAIN);
   lv_obj_set_flex_grow(label_curr_temp, 1);
 
   // at the bottom, add a time label
   time_label = lv_label_create(data_cont);
   lv_label_set_recolor(time_label, true);
-  lv_label_set_text(time_label, "18:21");
   lv_obj_add_style(time_label, &style_font32, LV_PART_MAIN);
 
   // add a date label
   label_date = lv_label_create(data_cont);
   lv_label_set_recolor(label_date, true);
-  lv_label_set_text(label_date, "23.12.2024\nWednesday");
 
   // create buttons container
   // it will take 2/5 of the screen
@@ -262,4 +256,25 @@ void gui_render() {
 
   create_btn(btn_incr, label_btn_incr, BUTTON_INCREASE);
   create_btn(btn_decr, label_btn_decr, BUTTON_DECREASE);
+}
+
+// GUI Handlers
+void gui_on_btn_pressed_cb(void (*cb)(enum ButtonType type)) {
+  btn_pressed_callback = cb;
+}
+
+void gui_set_temp(const char *current, const char *target, const char *thermostat_status) {
+  // target temperature
+  char text[30];
+  sprintf(text, "#0096FF %s°C#", target);
+  lv_label_set_text(label_targ_temp, text);
+  
+  // current temperature and status
+  sprintf(text, "#FFBF00 %s°C#\n#000 %s#", current, thermostat_status);
+  lv_label_set_text(label_curr_temp, text);
+}
+
+void gui_set_datetime(const char *date, const char *time) {
+  lv_label_set_text(label_date, date);
+  lv_label_set_text(time_label, time);
 }
