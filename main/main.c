@@ -10,6 +10,7 @@
 #include "homekit.h"
 #include "lcd.h"
 #include "gui.h"
+#include "datetime.h"
 
  // TODO: increase to 30s / 1min?
 #define TEMPERATURE_POLL_PERIOD 3000 // 3s
@@ -34,6 +35,21 @@ void task_temperature(void *pvParameters) {
   }
 }
 
+void task_datetime(void *pvParameters) {
+  struct tm now;
+  char time_buff[6];
+  char date_buff[25];
+
+  while (1) {
+    now = datetime_now();
+   
+    datetime_timef(time_buff, sizeof(time_buff), &now);
+    datetime_datef(date_buff, sizeof(date_buff), &now);
+    gui_set_datetime(date_buff, time_buff);
+
+    vTaskDelay(pdMS_TO_TICKS(1000)); // run every second
+  }
+}
 
 void on_btn_touch(enum ButtonType type) {
   float target_value = homekit_get_target_temp();
@@ -93,8 +109,12 @@ void on_wifi_ready() {
   // Start the Homekit server
   homekit_init(on_homekit_update);
 
+  // Fetch the current time from the internet
+  datetime_init();
+
   // Start the temperature check task
   xTaskCreate(measure_temperature_task, "measure temperature", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+  xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 }
 
 void app_main() {
