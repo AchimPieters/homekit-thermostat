@@ -102,10 +102,19 @@ void homekit_init() {
   homekit_server_init(&config);
 }
 
-void homekit_update_temperature(struct TempHumidity temp_humid) {
+void homekit_set_curr_temp(struct TempHumidity temp_humid) {
   current_temperature.value = HOMEKIT_FLOAT(temp_humid.temperature);
   current_humidity.value = HOMEKIT_FLOAT(temp_humid.humidity);
 
   homekit_characteristic_notify(&current_temperature, current_temperature.value);
   homekit_characteristic_notify(&current_humidity, current_humidity.value);
+}
+
+float homekit_get_target_temp() {
+  return target_temperature.value.float_value;
+}
+
+void homekit_set_target_temp(float temp) {
+  ESP_LOGI(TAG, "Setting target temperature to %d°C", temp);
+  homekit_characteristic_notify(&target_temperature, HOMEKIT_FLOAT(temp));
 }

@@ -19,4 +19,6 @@ enum ThermostatStatus {
 };
 
 void homekit_init();
-void homekit_update_temperature(struct TempHumidity temp_humid);
+void homekit_set_curr_temp(struct TempHumidity temp_humid);
+float homekit_get_target_temp();
+void homekit_set_target_temp(float temp);
