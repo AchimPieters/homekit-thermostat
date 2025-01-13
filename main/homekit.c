@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -6,16 +7,13 @@
 #include <homekit/characteristics.h>
 #include <esp_err.h>
 #include "homekit.h"
-#include "relay.h"
-#include "sht40.h"
 
 static const char *TAG = "HOMEKIT";
 
-void update_state();
+// Callback handler when Homekit update arrives
+void (*on_homekit_update_cb)(struct HomekitState state);
 
-void on_update(homekit_characteristic_t *ch, homekit_value_t value, void *context) {
-  update_state();
-}
+static void on_homekit_update(homekit_characteristic_t *ch, homekit_value_t value, void *context);
 
 homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, THERMOSTAT_DEVICE_NAME);
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER, THERMOSTAT_DEVICE_MANUFACTURER);
@@ -25,33 +23,23 @@ homekit_characteristic_t revision = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION, T
 
 homekit_characteristic_t current_temperature = HOMEKIT_CHARACTERISTIC_(CURRENT_TEMPERATURE, 0);
 homekit_characteristic_t current_humidity = HOMEKIT_CHARACTERISTIC_(CURRENT_RELATIVE_HUMIDITY, 0);
-homekit_characteristic_t target_temperature = HOMEKIT_CHARACTERISTIC_(TARGET_TEMPERATURE, 20, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_update));
+homekit_characteristic_t target_temperature = HOMEKIT_CHARACTERISTIC_(TARGET_TEMPERATURE, 20, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_homekit_update));
 homekit_characteristic_t units = HOMEKIT_CHARACTERISTIC_(TEMPERATURE_DISPLAY_UNITS, 0);
 homekit_characteristic_t current_state = HOMEKIT_CHARACTERISTIC_(CURRENT_HEATING_COOLING_STATE, 0);
-homekit_characteristic_t target_state = HOMEKIT_CHARACTERISTIC_(TARGET_HEATING_COOLING_STATE, 0, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_update));
-homekit_characteristic_t cooling_threshold = HOMEKIT_CHARACTERISTIC_(COOLING_THRESHOLD_TEMPERATURE, 25, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_update));
-homekit_characteristic_t heating_threshold = HOMEKIT_CHARACTERISTIC_(HEATING_THRESHOLD_TEMPERATURE, 15, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_update));
+homekit_characteristic_t target_state = HOMEKIT_CHARACTERISTIC_(TARGET_HEATING_COOLING_STATE, 0, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_homekit_update));
+homekit_characteristic_t cooling_threshold = HOMEKIT_CHARACTERISTIC_(COOLING_THRESHOLD_TEMPERATURE, 25, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_homekit_update));
+homekit_characteristic_t heating_threshold = HOMEKIT_CHARACTERISTIC_(HEATING_THRESHOLD_TEMPERATURE, 15, .callback = HOMEKIT_CHARACTERISTIC_CALLBACK(on_homekit_update));
 
-void update_state() {
-  uint8_t state = target_state.value.int_value;
+static void on_homekit_update(homekit_characteristic_t *ch, homekit_value_t value, void *context) {
+  if (on_homekit_update_cb != NULL) {
+    struct HomekitState state = {
+      .current_state = current_state.value.int_value,
+      .target_state = target_state.value.int_value,
+      .current_temp = current_temperature.value.float_value,
+      .target_temp = target_temperature.value.float_value,
+    };
 
-  // If the thermostat is set to HEAT and the current temperature is < than the target temperature
-  // turn on the relay
-  if (state == THERMOSTAT_HEAT && current_temperature.value.float_value < target_temperature.value.float_value) {
-    if (current_state.value.int_value != THERMOSTAT_HEAT) {
-      current_state.value = HOMEKIT_UINT8(THERMOSTAT_HEAT);
-      homekit_characteristic_notify(&current_state, current_state.value);
-      ESP_LOGI(TAG, "Turning heating ON");
-      relay_on();
-    }
-  } else {
-    // Otherwise, if the relay is not already turned off, turn it off now
-    if (current_state.value.int_value != THERMOSTAT_OFF) {
-      current_state.value = HOMEKIT_UINT8(THERMOSTAT_OFF);
-      homekit_characteristic_notify(&current_state, current_state.value);
-      ESP_LOGI(TAG, "Turning heating OFF");
-      relay_off();
-    }
+    on_homekit_update_cb(state);
   }
 }
 
@@ -97,7 +85,10 @@ homekit_server_config_t config = {
   .setupId = CONFIG_ESP_SETUP_ID,
 };
 
-void homekit_init() {
+void homekit_init(void (*on_homekit_update)(struct HomekitState state)) {
+  // register callback
+  on_homekit_update_cb = on_homekit_update;
+
   ESP_LOGI(TAG, "Starting HomeKit server...");
   homekit_server_init(&config);
 }
@@ -115,6 +106,24 @@ float homekit_get_target_temp() {
 }
 
 void homekit_set_target_temp(float temp) {
-  ESP_LOGI(TAG, "Setting target temperature to %d°C", temp);
-  homekit_characteristic_notify(&target_temperature, HOMEKIT_FLOAT(temp));
+  ESP_LOGI(TAG, "Setting target temperature to %.1f°C", temp);
+  target_temperature.value = HOMEKIT_FLOAT(temp);
+  homekit_characteristic_notify(&target_temperature, target_temperature.value);
+}
+
+void homekit_get_thermostat_status(char *status) {
+  switch (current_state.value.int_value) {
+    case THERMOSTAT_HEAT:
+      strcpy(status, "heating");
+      break;
+    case THERMOSTAT_OFF:
+    default:
+      strcpy(status, "idle");
+      break;
+  }
+}
+
+void homekit_set_thermostat_status(enum ThermostatStatus status) {
+  current_state.value = HOMEKIT_UINT8(status);
+  homekit_characteristic_notify(&current_state, current_state.value);
 }
