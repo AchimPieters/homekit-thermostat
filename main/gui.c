@@ -44,6 +44,7 @@ static lv_style_t style_font26;
 // Labels
 static lv_obj_t *label_targ_temp;
 static lv_obj_t *label_curr_temp;
+static lv_obj_t *label_thermostat_status;
 static lv_obj_t *time_label;
 static lv_obj_t *label_date;
 static lv_obj_t *label_btn_incr;
@@ -228,11 +229,16 @@ void gui_render() {
   lv_obj_add_style(label_targ_temp, &style_font48, LV_PART_MAIN);
 
   // underneath, add a current temperature label
-  // this label will grow to take all the available white space
   label_curr_temp = lv_label_create(data_cont);
   lv_label_set_recolor(label_curr_temp, true);
   lv_obj_add_style(label_curr_temp, &style_font26, LV_PART_MAIN);
-  lv_obj_set_flex_grow(label_curr_temp, 1);
+
+  // next, add a thermostat status label
+  // this label will grow to take all the available white space
+  label_thermostat_status = lv_label_create(data_cont);
+  lv_label_set_recolor(label_thermostat_status, true);
+  lv_obj_add_style(label_thermostat_status, &style_font26, LV_PART_MAIN);
+  lv_obj_set_flex_grow(label_thermostat_status, 1);
 
   // at the bottom, add a time label
   time_label = lv_label_create(data_cont);
@@ -263,15 +269,28 @@ void gui_on_btn_pressed_cb(void (*cb)(enum ButtonType type)) {
   btn_pressed_callback = cb;
 }
 
-void gui_set_temp(const char *current, const char *target, const char *thermostat_status) {
+void gui_set_target_temp(const char *target) {
+  char text[15];
+
   // target temperature
-  char text[30];
   sprintf(text, "#0096FF %s°C#", target);
   lv_label_set_text(label_targ_temp, text);
-  
-  // current temperature and status
-  sprintf(text, "#FFBF00 %s°C#\n#000 %s#", current, thermostat_status);
+}
+
+void gui_set_curr_temp(const char *current) {
+  char text[15];
+
+  // current temperature
+  sprintf(text, "#FFBF00 %s°C#", current);
   lv_label_set_text(label_curr_temp, text);
+}
+
+void gui_set_thermostat_status(const char *thermostat_status) {
+  char text[20];
+
+  // thermostat status
+  sprintf(text, "#000 %s#", thermostat_status);
+  lv_label_set_text(label_thermostat_status, text);
 }
 
 void gui_set_datetime(const char *date, const char *time) {
