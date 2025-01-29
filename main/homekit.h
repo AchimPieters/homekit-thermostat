@@ -1,4 +1,4 @@
-#include "sht40.h"
+#include "hw/sht40.h"
 
 #define THERMOSTAT_DEVICE_NAME "ESP32 Thermostat"
 #define THERMOSTAT_DEVICE_MANUFACTURER "Jozef Cipa"

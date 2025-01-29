@@ -5,17 +5,15 @@
 #include <freertos/task.h>
 #include <esp_err.h>
 #include "wifi.h"
-#include "relay.h"
-#include "sht40.h"
+#include "hw/relay.h"
+#include "hw/sht40.h"
+#include "hw/lcd.h"
 #include "homekit.h"
-#include "lcd.h"
-#include "gui.h"
+#include "gui/gui.h"
 #include "datetime.h"
 
  // TODO: increase to 30s / 1min?
 #define TEMPERATURE_POLL_PERIOD 3000 // 3s
-#define MIN_TEMP 10
-#define MAX_TEMP 38 // Homekit allows up to 38 degrees
 
 void task_temperature(void *pvParameters) {
   struct TempHumidity temp_humid;

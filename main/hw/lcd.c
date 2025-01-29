@@ -8,7 +8,7 @@
 #include <esp_lcd_touch_xpt2046.h>
 #include <esp_log.h>
 #include <lvgl.h>
-#include "gui.h"
+#include "../gui/gui.h"
 #include "lcd.h"
 
 esp_lcd_panel_handle_t lcd_panel_handle = NULL;
