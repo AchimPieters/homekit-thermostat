@@ -149,24 +149,15 @@ void gui_init(void) {
 
   // rotate display by 90°
   lv_disp_set_rotation(disp, LV_DISP_ROT_90);
+
+  // LVGL timer task
+  xTaskCreate(lvgl_timer_task, "LVGL timer", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
 }
 
-void gui_load_screen() {
-  // TODO: implement
-
-
+void gui_load_scr(lv_obj_t *scr) {
   // Lock the mutex due to the LVGL APIs are not thread-safe
-  // if (lvgl_lock(-1)) {
-  //   gui_render();
-    // lvgl_unlock();
-  // }
-
-  // lv_scr_load(wifi_scr);
+  if (lvgl_lock(-1)) {
+    lv_scr_load(scr);
+    lvgl_unlock();
+  }
 }
-
-// static void on_wifi_reconnect(lv_event_t *e) {
-//     // gui_wifi_scr();
-//     // lv_scr_load(wifi_scr);
-
-//     // TODO: switch to WiFi screen
-// }

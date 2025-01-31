@@ -1,3 +1,5 @@
+#include "wifi.h"
+
 #include <esp_err.h>
 #include <esp_event.h>
 #include <esp_log.h>
@@ -8,14 +10,13 @@
 #include <freertos/task.h>
 #include <network_provisioning/manager.h>
 #include <network_provisioning/scheme_ble.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include "wifi.h"
+
+#include "events.h"
 
 static const char *TAG = "WIFI";
-
-const int WIFI_CONNECTED_EVENT = BIT0;
-static EventGroupHandle_t wifi_event_group;
 
 // This salt,verifier has been generated for username = "wifiprov" and password = "abcd1234"
 // IMPORTANT NOTE: For production cases, this must be unique to every device
@@ -77,6 +78,8 @@ static uint8_t custom_service_uuid[] = {
     0x02,
 };
 
+static bool prov_mgr_initialized = false;
+
 // Event handlers
 static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
   static int retries;
@@ -88,10 +91,13 @@ static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_
     case NETWORK_PROV_WIFI_CRED_RECV: {
       wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *)event_data;
       ESP_LOGI(TAG,
-               "Received Wi-Fi credentials"
-               "\n\tSSID     : %s\n\tPassword : %s",
+               "Received Wi-Fi credentials\n\tSSID     : %s\n\tPassword : %s",
                (const char *)wifi_sta_cfg->ssid,
                (const char *)wifi_sta_cfg->password);
+
+      eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_STARTED, NULL, 0);
+      char *msg = "Received Wi-Fi credentials";
+      eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
       break;
     }
     case NETWORK_PROV_WIFI_CRED_FAIL: {
@@ -101,13 +107,22 @@ static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_
                "\n\tPlease reset to factory and retry provisioning",
                (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ? "Wi-Fi station authentication failed" : "Wi-Fi access-point not found");
 
+      char msg[70];
+      snprintf(
+          msg,
+          sizeof(msg),
+          "#ff0000 %s (%d) #",
+          (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ? "Wi-Fi authentication failed" : "Wi-Fi access-point not found",
+          retries + 1);
+      eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
+
       retries++;
       if (retries >= PROV_MGR_MAX_RETRY_CNT) {
-        ESP_LOGI(TAG, "Failed to connect with provisioned AP, reseting provisioned credentials");
+        ESP_LOGW(TAG, "Failed to connect with provisioned AP, reseting provisioned credentials");
         network_prov_mgr_reset_wifi_sm_state_on_failure();
 
-        // TODO do we need to handle this somehow? show QR screen or smth?
-
+        const char *msg = "#ff0000 Failed to connect to WiFi #";
+        eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_CONN_ERROR, msg, strlen(msg) + 1);
         retries = 0;
       }
 
@@ -115,6 +130,9 @@ static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_
     }
     case NETWORK_PROV_WIFI_CRED_SUCCESS:
       ESP_LOGI(TAG, "Provisioning successful");
+
+      const char *msg = "#00ff0 Provisioning successful #";
+      eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
       retries = 0;
       break;
     case NETWORK_PROV_END:
@@ -142,10 +160,14 @@ static void on_wifi_event(void *arg, esp_event_base_t event_base, int32_t event_
 static void on_ip_event(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
   if (event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-    ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
+    ESP_LOGI(TAG, "Connected with IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
+
+    char msg[60];
+    sprintf(msg, "#00ff00 Connected with IP Address: " IPSTR " #", IP2STR(&event->ip_info.ip));
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
 
     // Signal main application to continue execution
-    xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_EVENT);
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_CONNECTED, NULL, 0);
   }
 }
 
@@ -183,15 +205,12 @@ static void get_device_name(char *device_name, size_t max) {
   uint8_t eth_mac[6];
   const char *ssid_prefix = "PROV_";
   esp_wifi_get_mac(WIFI_IF_STA, eth_mac);
-  snprintf(device_name, max, "%s%02X%02X%02X",
-           ssid_prefix, eth_mac[3], eth_mac[4], eth_mac[5]);
+  snprintf(device_name, max, "%s%02X%02X%02X", ssid_prefix, eth_mac[3], eth_mac[4], eth_mac[5]);
 }
 
 void wifi_init(void) {
   // Init WiFi
   ESP_ERROR_CHECK(esp_netif_init());
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
-  wifi_event_group = xEventGroupCreate();
 
   // Register event handlers
   ESP_ERROR_CHECK(esp_event_handler_register(NETWORK_PROV_EVENT, ESP_EVENT_ANY_ID, on_network_prov_event, NULL));
@@ -206,21 +225,30 @@ void wifi_init(void) {
 }
 
 bool wifi_is_provisioned(void) {
-  bool provisioned = false;
-  ESP_ERROR_CHECK(network_prov_mgr_is_wifi_provisioned(&provisioned));
-  return provisioned;
+  return false;  // TODO: temp
+
+  // bool provisioned = false;
+  // ESP_ERROR_CHECK(network_prov_mgr_is_wifi_provisioned(&provisioned));
+  // return provisioned;
 }
 
 void wifi_init_provisioning(char *payload, size_t payload_len) {
-  ESP_LOGI(TAG, "Starting provisioning");
-
   network_prov_mgr_config_t config = {
       .scheme = network_prov_scheme_ble,
       // after the provisioning is done, release the associated memory,
       // as we no longer use BT nor BLE in our application
       .scheme_event_handler = NETWORK_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
   };
+
+  // TODO: fix how to start provisioning multiple times or restart?
+  // or maybe we should just keep the QR code and not call this thing multiple times
+  // and make qr_code a static var in wifi.c and clear it after provisioning is done
+
+  // If this function is called multiple times, first we need to deinit the ongoing provisioning
+
+  ESP_LOGI(TAG, "Starting provisioning");
   ESP_ERROR_CHECK(network_prov_mgr_init(config));
+  prov_mgr_initialized = true;
 
   char device_name[12];
   get_device_name(device_name, sizeof(device_name));
@@ -240,9 +268,6 @@ void wifi_init_provisioning(char *payload, size_t payload_len) {
   network_prov_scheme_ble_set_service_uuid(custom_service_uuid);
   ESP_ERROR_CHECK(network_prov_mgr_start_provisioning(NETWORK_PROV_SECURITY_2, (const void *)&sec_params, device_name, NULL));
 
-  // char payload[150] = {0}; - TODO toto bude definovane vonku,
-  // sizeof(payload)
-
   snprintf(payload, payload_len,
            "{\"ver\":\"%s\",\"name\":\"%s\""
            ",\"username\":\"%s\",\"pop\":\"%s\",\"transport\":\"%s\"}",
@@ -253,11 +278,10 @@ void wifi_init_provisioning(char *payload, size_t payload_len) {
 
 void wifi_connect() {
   ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
-  network_prov_mgr_deinit();
+
+  const char *msg = "Connecting to WiFi";
+  eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
+
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_start());
-}
-
-void wifi_wait_for_conn() {
-  xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, true, true, portMAX_DELAY);
 }

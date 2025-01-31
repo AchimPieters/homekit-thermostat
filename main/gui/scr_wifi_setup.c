@@ -3,13 +3,14 @@
 #include <esp_log.h>
 #include <lv_qrcode.h>
 #include "fonts.h"
+#include "gui.h"
 
-static const char *TAG = "Wi-fi setup";
+static const char *TAG = "WIFI SCREEN";
 
-lv_obj_t *scr_wifi_setup;
+static lv_obj_t *scr_wifi_setup;
 
 void gui_wifi_scr(char *qr_data, size_t qr_data_len) {
-  ESP_LOGI(TAG, "Rendering screen");
+  ESP_LOGI(TAG, "Rendering");
 
   // create main flexbox row container
   scr_wifi_setup = lv_obj_create(NULL);
@@ -42,4 +43,7 @@ void gui_wifi_scr(char *qr_data, size_t qr_data_len) {
   // add QR code (lv_canvas)
   lv_obj_t *qr = lv_qrcode_create(qr_container, 130, lv_color_black(), lv_color_white());
   lv_qrcode_update(qr, qr_data, qr_data_len);
+
+  // show screen on the display
+  gui_load_scr(scr_wifi_setup);
 }

@@ -4,13 +4,18 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_err.h>
+#include <esp_event.h>
 #include "wifi.h"
 #include "hw/relay.h"
 #include "hw/sht40.h"
 #include "hw/lcd.h"
 #include "homekit.h"
 #include "gui/gui.h"
+#include "gui/scr_wifi_setup.h"
+#include "gui/scr_loading.h"
+#include "gui/scr_main.h"
 #include "datetime.h"
+#include "events.h"
 
  // TODO: increase to 30s / 1min?
 #define TEMPERATURE_POLL_PERIOD 3000 // 3s
@@ -22,7 +27,7 @@ void task_temperature(void *pvParameters) {
   while (1) {
     temp_humid = sht40_measure_temp();
     ESP_LOGI("SHT40", "Humidity: %.1f%% Temperature: %.1fC", temp_humid.humidity, temp_humid.temperature);
-    
+
     // Update temperature in homekit
     homekit_set_curr_temp(temp_humid);
 
@@ -40,7 +45,7 @@ void task_datetime(void *pvParameters) {
 
   while (1) {
     now = datetime_now();
-   
+
     datetime_timef(time_buff, sizeof(time_buff), &now);
     datetime_datef(date_buff, sizeof(date_buff), &now);
     gui_set_datetime(date_buff, time_buff);
@@ -103,16 +108,73 @@ void on_homekit_update(struct HomekitState state) {
   gui_set_thermostat_status(thermostat_status);
 }
 
-void on_wifi_ready() {
-  // Start the Homekit server
-  homekit_init(on_homekit_update);
+void on_wifi_reconnect_btn(void) {
+  eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING, NULL, 0);
+}
 
-  // Fetch the current time from the internet
-  datetime_init();
+void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+  const char *tag = "EVENT";
+  switch (event_id) {
+    case HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING:
+      // Init the provisioning and display the QR code
+      ESP_LOGI(tag, "Received WiFi provisioning request.");
+      char qr_data[150] = {0};
+      wifi_init_provisioning(qr_data, sizeof(qr_data));
+      // wifi_init_provisioning(qr_data, sizeof(qr_data)); // todo temp
+      gui_wifi_scr(qr_data, sizeof(qr_data));
 
-  // Start the temperature check task
-  xTaskCreate(measure_temperature_task, "measure temperature", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
-  xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+      // gui_loading_scr();
+      // gui_loading_show_reconnect_btn(on_wifi_reconnect_btn);
+      break;
+    case HOMEKIT_THERMOSTAT_WIFI_CONN_ERROR:
+      ESP_LOGI(tag, "WiFi connection error.");
+      gui_loading_show_reconnect_btn(on_wifi_reconnect_btn);
+      break;
+    case HOMEKIT_THERMOSTAT_WIFI_CONNECTED:
+      ESP_LOGI(tag, "WiFi connected.");
+
+      // Start the Homekit server
+      homekit_init(on_homekit_update);
+
+      // TODO: load the initial data from homekit and update GUI (now it's stuck at loading until first action)
+
+      // Fetch the current time from the internet
+      datetime_init();
+
+      // Start the temperature check task
+      // xTaskCreate(task_temperature, "TempTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+      // xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+
+      eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_DONE, NULL, 0);
+      break;
+    case HOMEKIT_THERMOSTAT_INIT_STARTED:
+      ESP_LOGI(tag, "Initialization started.");
+      // TODO: remove provisioning screen from memory
+      gui_loading_scr();
+
+      // TODO: next steps
+      // - update the logs string (dynamically grow string)
+      // - handle go back to the wifi screen if needed
+        // - provisioning manager - reset
+        // - free logs string memory
+        // - free loading screen GUI objectsfrcf
+      break;
+    case HOMEKIT_THERMOSTAT_INIT_UPDATE:
+      if (event_data != NULL) {
+        gui_loading_add_log((char*) event_data);
+      }
+      break;
+    case HOMEKIT_THERMOSTAT_INIT_DONE:
+      ESP_LOGI(tag, "Homekit thermostat is ready.");
+      gui_main_scr();
+
+      // TODO: define button handler
+
+      // TODO: remove the event loop?
+    break;
+
+    // TODO: or can we somehow detect if WiFi goes down? --> it should restart when wifi connection is lost
+  }
 }
 
 void app_main() {
@@ -132,21 +194,20 @@ void app_main() {
   // Init display
   lcd_init();
   gui_init();
-  xTaskCreate(lvgl_timer_task, "LVGL timer", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
 
-  // Lock the mutex due to the LVGL APIs are not thread-safe
-  if (lvgl_lock(-1)) {
-    gui_render();
-    lvgl_unlock();
+  // Init default event loop
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+  // Init Homekit Thermostat event loop
+  eventloop_init(on_eventloop_evt);
+
+  // Init WiFi
+  wifi_init();
+
+  if (!wifi_is_provisioned()) {
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING, NULL, 0);
+  } else {
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_STARTED, NULL, 0);
+    wifi_connect();
   }
-
-  // Initialize GUI data
-  gui_set_datetime("-", "-");
-  gui_set_target_temp("-");
-  gui_set_curr_temp("-");
-  gui_set_thermostat_status("Loading...");
-  gui_on_btn_pressed_cb(&on_btn_touch);
-
-  // Init Wifi connection
-  wifi_init(&on_wifi_ready);
 }

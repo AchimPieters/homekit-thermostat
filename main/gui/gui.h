@@ -15,7 +15,6 @@ void lvgl_flush_cb(lv_disp_drv_t *display_drv, const lv_area_t *area, lv_color_t
 void lvgl_increase_tick(void *arg);
 bool lvgl_lock(int timeout_ms);
 void lvgl_unlock(void);
-void lvgl_timer_task(void *arg);
 
 void gui_init(void);
-
+void gui_load_scr(lv_obj_t *scr);
