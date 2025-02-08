@@ -17,12 +17,10 @@
 #include "datetime.h"
 #include "events.h"
 
- // TODO: increase to 30s / 1min?
-#define TEMPERATURE_POLL_PERIOD 3000 // 3s
+#define TEMPERATURE_POLL_PERIOD 5000 // 5s // TODO: add to Kconfig
 
 void task_temperature(void *pvParameters) {
-  struct TempHumidity temp_humid;
-  char temp_str[5];
+  TempHumidity temp_humid;
 
   while (1) {
     temp_humid = sht40_measure_temp();
@@ -32,7 +30,7 @@ void task_temperature(void *pvParameters) {
     homekit_set_curr_temp(temp_humid);
 
     // Update temperature in GUI
-    gui_set_curr_temp(temp_str);
+    gui_set_curr_temp(temp_humid.temperature);
 
     vTaskDelay(pdMS_TO_TICKS(TEMPERATURE_POLL_PERIOD));
   }
@@ -50,38 +48,17 @@ void task_datetime(void *pvParameters) {
     datetime_datef(date_buff, sizeof(date_buff), &now);
     gui_set_datetime(date_buff, time_buff);
 
-    vTaskDelay(pdMS_TO_TICKS(1000)); // run every second
+    vTaskDelay(pdMS_TO_TICKS(1000)); // 1s
   }
 }
 
-void on_btn_touch(enum ButtonType type) {
-  float target_value = homekit_get_target_temp();
+void on_homekit_update(HomekitState state) {
+  printf("Update from homekit\n");
+  printf("current state: %d\n", state.current_state);
+  printf("target state: %d\n", state.target_state);
+  printf("current temp: %1.f\n",state.current_temp);
+  printf("target temp: %1.f\n",state.target_temp);
 
-  // Update target temperature
-  float new_temp = 0;
-  if (type == BUTTON_INCREASE) {
-    new_temp = target_value + 1;
-    if (new_temp > MAX_TEMP) {
-      new_temp = MAX_TEMP;
-    }
-  } else if (type == BUTTON_DECREASE) {
-    new_temp = target_value - 1;
-    
-    if (new_temp < MIN_TEMP) {
-      new_temp = MIN_TEMP;
-    }
-  }  
-
-  // Update homekit
-  homekit_set_target_temp(new_temp);
-  
-  // Update GUI
-  char temp_str[5];
-  snprintf(temp_str, sizeof(temp_str), "%.1f", new_temp);
-  gui_set_target_temp(temp_str);
-}
-
-void on_homekit_update(struct HomekitState state) {  
   // If the thermostat is set to HEAT and the current temperature is < than the target temperature
   // turn on the relay
   if (state.target_state == THERMOSTAT_HEAT && state.current_temp < state.target_temp) {
@@ -98,18 +75,39 @@ void on_homekit_update(struct HomekitState state) {
   }
 
   // Update target temperature in GUI
-  char target_temp_str[5];
-  snprintf(target_temp_str, sizeof(target_temp_str), "%.1f", state.target_temp);
-  gui_set_target_temp(target_temp_str);
+  gui_set_target_temp(state.target_temp);
 
   // Update thermostat status in GUI
-  char thermostat_status[20];
-  homekit_get_thermostat_status(thermostat_status);
-  gui_set_thermostat_status(thermostat_status);
+  gui_set_thermostat_status(state.target_state);
 }
 
 void on_wifi_reconnect_btn(void) {
   eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING, NULL, 0);
+}
+
+void on_temp_btn(ButtonType type) {
+  float target_value = homekit_get_state().target_temp;
+
+  // Update target temperature
+  float new_temp = 0;
+  if (type == BUTTON_INCREASE) {
+    new_temp = target_value + 1;
+    if (new_temp > MAX_TEMP) {
+      new_temp = MAX_TEMP;
+    }
+  } else if (type == BUTTON_DECREASE) {
+    new_temp = target_value - 1;
+
+    if (new_temp < MIN_TEMP) {
+      new_temp = MIN_TEMP;
+    }
+  }
+
+  // Update homekit
+  homekit_set_target_temp(new_temp);
+
+  // Update GUI
+  gui_set_target_temp(new_temp);
 }
 
 void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
@@ -136,28 +134,15 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       // Start the Homekit server
       homekit_init(on_homekit_update);
 
-      // TODO: load the initial data from homekit and update GUI (now it's stuck at loading until first action)
-
       // Fetch the current time from the internet
       datetime_init();
-
-      // Start the temperature check task
-      // xTaskCreate(task_temperature, "TempTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
-      // xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_DONE, NULL, 0);
       break;
     case HOMEKIT_THERMOSTAT_INIT_STARTED:
       ESP_LOGI(tag, "Initialization started.");
-      // TODO: remove provisioning screen from memory
+      // TODO: remove QR code screen from memory
       gui_loading_scr();
-
-      // TODO: next steps
-      // - update the logs string (dynamically grow string)
-      // - handle go back to the wifi screen if needed
-        // - provisioning manager - reset
-        // - free logs string memory
-        // - free loading screen GUI objectsfrcf
       break;
     case HOMEKIT_THERMOSTAT_INIT_UPDATE:
       if (event_data != NULL) {
@@ -166,14 +151,16 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       break;
     case HOMEKIT_THERMOSTAT_INIT_DONE:
       ESP_LOGI(tag, "Homekit thermostat is ready.");
+      gui_loading_add_log("All set.");
+      vTaskDelay(pdMS_TO_TICKS(1)); // wait 1s
       gui_main_scr();
 
-      // TODO: define button handler
+      // Start the temperature check task
+      xTaskCreate(task_temperature, "TempTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+      // Start the time update task
+      xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 
-      // TODO: remove the event loop?
-    break;
 
-    // TODO: or can we somehow detect if WiFi goes down? --> it should restart when wifi connection is lost
   }
 }
 

@@ -1,15 +1,13 @@
+#include "scr_main.h"
+
+#include <esp_log.h>
 #include <lvgl.h>
 #include <stdio.h>
-#include <esp_log.h>
+
 #include "fonts.h"
-#include "scr_main.h"
-#include "../homekit.h"
+#include "gui.h"
 
-// TODO: define these in KConfig
-#define MIN_TEMP 10
-#define MAX_TEMP 38 // Homekit allows up to 38 degrees
-
-static const char *TAG = "Main screen";
+static const char *TAG = "MAIN SCREEN";
 
 // GUI objects
 // ------------------------
@@ -30,13 +28,14 @@ static lv_obj_t *label_btn_decr;
 // Buttons
 static lv_obj_t *btn_incr;
 static lv_obj_t *btn_decr;
+static lv_style_t style_btn_disabled;
 
 // Button pressed callback function
-void (*btn_pressed_callback)(enum ButtonType type);
+temp_button_callback btn_pressed_callback;
 
 static void on_btn_pressed(lv_event_t *e) {
-  lv_obj_t * btn = lv_event_get_target(e);
-  enum ButtonType btn_type = (enum ButtonType) lv_obj_get_user_data(btn);
+  lv_obj_t *btn = lv_event_get_target(e);
+  ButtonType btn_type = (ButtonType)lv_obj_get_user_data(btn);
 
   // If the callback function is defined, call it
   if (btn_pressed_callback != NULL) {
@@ -44,50 +43,22 @@ static void on_btn_pressed(lv_event_t *e) {
   }
 }
 
-void on_btn_touch(enum ButtonType type) {
-  float target_value = homekit_get_target_temp();
+static void create_btn(lv_obj_t **btn, lv_obj_t *lbl, ButtonType btn_type) {
+  *btn = lv_btn_create(btns_cont);
+  lv_obj_add_event_cb(*btn, on_btn_pressed, LV_EVENT_CLICKED, NULL);
+  lv_obj_set_size(*btn, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_flex_grow(*btn, 1);
+  lv_obj_set_user_data(*btn, (void *)btn_type);
+  lv_obj_add_style(*btn, &style_btn_disabled, LV_STATE_DISABLED);
 
-  // TODO: if thermostat is off, don't update state, also buttons should be gray
-
-  // Update target temperature
-  float new_temp = 0;
-  if (type == BUTTON_INCREASE) {
-    new_temp = target_value + 1;
-    if (new_temp > MAX_TEMP) {
-      new_temp = MAX_TEMP;
-    }
-  } else if (type == BUTTON_DECREASE) {
-    new_temp = target_value - 1;
-
-    if (new_temp < MIN_TEMP) {
-      new_temp = MIN_TEMP;
-    }
-  }
-
-  // Update homekit
-  homekit_set_target_temp(new_temp);
-
-  // Update GUI
-  char temp_str[5];
-  snprintf(temp_str, sizeof(temp_str), "%.1f", new_temp);
-  gui_set_target_temp(temp_str);
-}
-
-static void create_btn(lv_obj_t *btn, lv_obj_t *lbl, enum ButtonType btn_type) {
-  btn = lv_btn_create(btns_cont);
-  lv_obj_add_event_cb(btn, on_btn_pressed, LV_EVENT_CLICKED, NULL);
-  lv_obj_set_size(btn, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_set_flex_grow(btn, 1);
-  lv_obj_set_user_data(btn, (void *) btn_type);
-
-  lbl = lv_label_create(btn);
+  lbl = lv_label_create(*btn);
   lv_label_set_text(lbl, btn_type == BUTTON_INCREASE ? "+" : "-");
   lv_obj_center(lbl);
   lv_obj_add_style(lbl, &style_font32, LV_PART_MAIN);
 }
 
 void gui_main_scr() {
-  ESP_LOGI(TAG, "Rendering screen");
+  ESP_LOGI(TAG, "Rendering");
 
   // create main flexbox row container
   main_cont = lv_obj_create(lv_scr_act());
@@ -143,43 +114,80 @@ void gui_main_scr() {
   lv_obj_set_style_pad_all(btns_cont, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_row(btns_cont, 20, LV_PART_MAIN);
 
-  create_btn(btn_incr, label_btn_incr, BUTTON_INCREASE);
-  create_btn(btn_decr, label_btn_decr, BUTTON_DECREASE);
+  // Init disabled button styles
+  lv_style_init(&style_btn_disabled);
+  lv_style_set_bg_color(&style_btn_disabled, lv_palette_darken(LV_PALETTE_GREY, 3));  // Gray out the button
+  lv_style_set_border_color(&style_btn_disabled, lv_palette_main(LV_PALETTE_GREY));   // Dim the border
+
+  create_btn(&btn_incr, label_btn_incr, BUTTON_INCREASE);
+  create_btn(&btn_decr, label_btn_decr, BUTTON_DECREASE);
 }
 
 // GUI Handlers
-void gui_on_btn_pressed_cb(void (*cb)(enum ButtonType type)) {
+void gui_on_btn_pressed_cb(temp_button_callback cb) {
   btn_pressed_callback = cb;
 }
 
-void gui_set_target_temp(const char *target) {
+static void gui_enable_btns(bool enable) {
+  if (enable) {
+    lv_obj_clear_state(btn_incr, LV_STATE_DISABLED);
+    lv_obj_clear_state(btn_decr, LV_STATE_DISABLED);
+  } else {
+    lv_obj_add_state(btn_incr, LV_STATE_DISABLED);
+    lv_obj_add_state(btn_decr, LV_STATE_DISABLED);
+  }
+}
+
+void gui_set_target_temp(float target_temp) {
+   if (label_targ_temp == NULL) {
+    return;
+  }
+
   char text[15];
 
   // target temperature
-  sprintf(text, "#0096FF %s°C#", target);
+  sprintf(text, "#0096FF %1.f°C#", target_temp);
   lv_label_set_text(label_targ_temp, text);
 }
 
-void gui_set_curr_temp(const char *current) {
+void gui_set_curr_temp(float current) {
+  if (label_curr_temp == NULL) {
+    return;
+  }
+
   char text[15];
 
   // current temperature
-  sprintf(text, "#FFBF00 %s°C#", current);
+  sprintf(text, "#FFBF00 %1.f°C#", current);
   lv_label_set_text(label_curr_temp, text);
 }
 
-void gui_set_thermostat_status(const char *thermostat_status) {
-  char text[20];
+void gui_set_thermostat_status(ThermostatStatus thermostat_status) {
+  if (label_thermostat_status == NULL) {
+    return;
+  }
 
-  // thermostat status
-  sprintf(text, "#000 %s#", thermostat_status);
-  lv_label_set_text(label_thermostat_status, text);
+  switch (thermostat_status) {
+    case THERMOSTAT_HEAT:
+      lv_label_set_text(label_thermostat_status, "#ffa500 heating #");
+      gui_enable_btns(true);
+      break;
+    case THERMOSTAT_OFF:
+    default:
+      lv_label_set_text(label_thermostat_status, "off");
+      gui_enable_btns(false);
+      break;
+      // TODO: distinguish between heating and not heating (if relay is on or not)
+  }
 }
 
 void gui_set_datetime(const char *date, const char *time) {
+  if (label_date == NULL || time_label == NULL) {
+    return;
+  }
+
   lv_label_set_text(label_date, date);
   lv_label_set_text(time_label, time);
 }
-
 
 // TODO: add locks to gui handlers

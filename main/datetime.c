@@ -9,6 +9,7 @@
 #include "esp_system.h"
 #include "lwip/ip_addr.h"
 #include "time.h"
+#include "events.h"
 
 static const char *TAG = "TIME";
 
@@ -22,7 +23,9 @@ void datetime_init(void) {
   int retry = 0;
   const int retry_count = 15;
   while (esp_netif_sntp_sync_wait(2000 / portTICK_PERIOD_MS) == ESP_ERR_TIMEOUT && ++retry < retry_count) {
-    ESP_LOGI(TAG, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
+    char msg[50];
+    snprintf(msg, sizeof(msg), "Waiting for system time to be set... (%d/%d)", retry, retry_count);
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
   }
 
   esp_netif_sntp_deinit();

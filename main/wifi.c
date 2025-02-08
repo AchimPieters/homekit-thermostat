@@ -131,7 +131,7 @@ static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_
     case NETWORK_PROV_WIFI_CRED_SUCCESS:
       ESP_LOGI(TAG, "Provisioning successful");
 
-      const char *msg = "#00ff0 Provisioning successful #";
+      const char *msg = "Provisioning successful";
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
       retries = 0;
       break;
@@ -160,10 +160,10 @@ static void on_wifi_event(void *arg, esp_event_base_t event_base, int32_t event_
 static void on_ip_event(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
   if (event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-    ESP_LOGI(TAG, "Connected with IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
+    ESP_LOGI(TAG, "Obtained IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
 
     char msg[60];
-    sprintf(msg, "#00ff00 Connected with IP Address: " IPSTR " #", IP2STR(&event->ip_info.ip));
+    sprintf(msg, "Obtained IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
     eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
 
     // Signal main application to continue execution
@@ -225,11 +225,11 @@ void wifi_init(void) {
 }
 
 bool wifi_is_provisioned(void) {
-  return false;  // TODO: temp
+  // return false;  // TODO: temp
 
-  // bool provisioned = false;
-  // ESP_ERROR_CHECK(network_prov_mgr_is_wifi_provisioned(&provisioned));
-  // return provisioned;
+  bool provisioned = false;
+  ESP_ERROR_CHECK(network_prov_mgr_is_wifi_provisioned(&provisioned));
+  return provisioned;
 }
 
 void wifi_init_provisioning(char *payload, size_t payload_len) {
@@ -279,7 +279,7 @@ void wifi_init_provisioning(char *payload, size_t payload_len) {
 void wifi_connect() {
   ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
 
-  const char *msg = "Connecting to WiFi";
+  const char *msg = "Connecting to WiFi...";
   eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
