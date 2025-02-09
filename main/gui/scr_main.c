@@ -143,10 +143,10 @@ void gui_set_target_temp(float target_temp) {
     return;
   }
 
-  char text[15];
+  char text[20];
 
   // target temperature
-  sprintf(text, "#0096FF %1.f°C#", target_temp);
+  sprintf(text, "#0096FF %.1f°C#", target_temp);
   lv_label_set_text(label_targ_temp, text);
 }
 
@@ -155,10 +155,10 @@ void gui_set_curr_temp(float current) {
     return;
   }
 
-  char text[15];
+  char text[20];
 
   // current temperature
-  sprintf(text, "#FFBF00 %1.f°C#", current);
+  sprintf(text, "#FFBF00 %.1f°C#", current);
   lv_label_set_text(label_curr_temp, text);
 }
 
@@ -172,12 +172,15 @@ void gui_set_thermostat_status(ThermostatStatus thermostat_status) {
       lv_label_set_text(label_thermostat_status, "#ffa500 heating #");
       gui_enable_btns(true);
       break;
+    case _THERMOSTAT_IDLE:
+      lv_label_set_text(label_thermostat_status, "#50C878 idle #");
+      gui_enable_btns(true);
+      break;
     case THERMOSTAT_OFF:
     default:
       lv_label_set_text(label_thermostat_status, "off");
       gui_enable_btns(false);
       break;
-      // TODO: distinguish between heating and not heating (if relay is on or not)
   }
 }
 

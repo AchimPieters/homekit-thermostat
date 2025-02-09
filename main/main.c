@@ -1,23 +1,24 @@
-#include <stdio.h>
-#include <esp_log.h>
-#include <nvs_flash.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <esp_err.h>
 #include <esp_event.h>
-#include "wifi.h"
-#include "hw/relay.h"
-#include "hw/sht40.h"
-#include "hw/lcd.h"
-#include "homekit.h"
-#include "gui/gui.h"
-#include "gui/scr_wifi_setup.h"
-#include "gui/scr_loading.h"
-#include "gui/scr_main.h"
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <nvs_flash.h>
+#include <stdio.h>
+
 #include "datetime.h"
 #include "events.h"
+#include "gui/gui.h"
+#include "gui/scr_loading.h"
+#include "gui/scr_main.h"
+#include "gui/scr_wifi_setup.h"
+#include "homekit.h"
+#include "hw/lcd.h"
+#include "hw/relay.h"
+#include "hw/sht40.h"
+#include "wifi.h"
 
-#define TEMPERATURE_POLL_PERIOD 5000 // 5s // TODO: add to Kconfig
+#define TEMPERATURE_POLL_PERIOD 10000  // 10s // TODO: add to Kconfig
 
 void task_temperature(void *pvParameters) {
   TempHumidity temp_humid;
@@ -31,6 +32,22 @@ void task_temperature(void *pvParameters) {
 
     // Update temperature in GUI
     gui_set_curr_temp(temp_humid.temperature);
+
+    HomekitState state = homekit_get_state();
+
+    if (state.current_state == THERMOSTAT_HEAT) {
+      // If the current temperature is higher that the target,
+      // Turn off the relay and show the IDLE state on the display
+      if (state.current_temp > state.target_temp && relay_turned_on) {
+        ESP_LOGI("TEMP_TASK", "Current temperature (%.1f) is higher that the target (%.1f). Switching relay OFF", state.current_temp, state.target_temp);
+        relay_off();
+        gui_set_thermostat_status(_THERMOSTAT_IDLE);
+      } else if (state.current_temp < state.target_temp && !relay_turned_on) {
+        ESP_LOGI("TEMP_TASK", "Current temperature (%.1f) is lower that the target (%.1f). Switching relay ON", state.current_temp, state.target_temp);
+        relay_on();
+        gui_set_thermostat_status(THERMOSTAT_HEAT);
+      }
+    }
 
     vTaskDelay(pdMS_TO_TICKS(TEMPERATURE_POLL_PERIOD));
   }
@@ -48,7 +65,7 @@ void task_datetime(void *pvParameters) {
     datetime_datef(date_buff, sizeof(date_buff), &now);
     gui_set_datetime(date_buff, time_buff);
 
-    vTaskDelay(pdMS_TO_TICKS(1000)); // 1s
+    vTaskDelay(pdMS_TO_TICKS(1000));  // 1s
   }
 }
 
@@ -56,29 +73,38 @@ void on_homekit_update(HomekitState state) {
   printf("Update from homekit\n");
   printf("current state: %d\n", state.current_state);
   printf("target state: %d\n", state.target_state);
-  printf("current temp: %1.f\n",state.current_temp);
-  printf("target temp: %1.f\n",state.target_temp);
+  printf("current temp: %1.f\n", state.current_temp);
+  printf("target temp: %1.f\n", state.target_temp);
 
-  // If the thermostat is set to HEAT and the current temperature is < than the target temperature
-  // turn on the relay
-  if (state.target_state == THERMOSTAT_HEAT && state.current_temp < state.target_temp) {
-    if (state.current_state != THERMOSTAT_HEAT) {
-      homekit_set_thermostat_status(THERMOSTAT_HEAT);
+  // If the target state is set to either OFF or to one of unsupported states,
+  // turn the thermostat off
+  if (state.target_state == THERMOSTAT_OFF || state.target_state == _THERMOSTAT_AUTO || state.target_state == _THERMOSTAT_COOL) {
+    homekit_set_thermostat_status(THERMOSTAT_OFF);
+    relay_off();
+    gui_set_thermostat_status(THERMOSTAT_OFF);
+
+    return;
+  }
+
+  // Otherwise, make sure the current state is set to HEAT
+  homekit_set_thermostat_status(THERMOSTAT_HEAT);
+
+  if (state.current_temp < state.target_temp) {
+    if (!relay_turned_on) {
+      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is lower that the target (%.1f). Switching relay ON", state.current_temp, state.target_temp);
       relay_on();
     }
-  } else {
-    // Otherwise, if the relay is not already turned off, turn it off now
-    if (state.current_state != THERMOSTAT_OFF) {
-      homekit_set_thermostat_status(THERMOSTAT_OFF);
+    gui_set_thermostat_status(THERMOSTAT_HEAT);
+  } else if (state.current_temp > state.target_temp) {
+    if (relay_turned_on) {
+      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is higher that the target (%.1f). Switching relay OFF", state.current_temp, state.target_temp);
       relay_off();
     }
+    gui_set_thermostat_status(_THERMOSTAT_IDLE);
   }
 
   // Update target temperature in GUI
   gui_set_target_temp(state.target_temp);
-
-  // Update thermostat status in GUI
-  gui_set_thermostat_status(state.target_state);
 }
 
 void on_wifi_reconnect_btn(void) {
@@ -146,23 +172,36 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       break;
     case HOMEKIT_THERMOSTAT_INIT_UPDATE:
       if (event_data != NULL) {
-        gui_loading_add_log((char*) event_data);
+        gui_loading_add_log((char *)event_data);
       }
       break;
     case HOMEKIT_THERMOSTAT_INIT_DONE:
       ESP_LOGI(tag, "Homekit thermostat is ready.");
-      gui_loading_add_log("All set.");
-      vTaskDelay(pdMS_TO_TICKS(1)); // wait 1s
       gui_main_scr();
 
       // Start the temperature check task
       xTaskCreate(task_temperature, "TempTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+
       // Start the time update task
       xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 
+      // Set initial data in Homekit
+      TempHumidity temp_humid = sht40_measure_temp();
+      homekit_set_curr_temp(temp_humid);
+      homekit_set_thermostat_status(THERMOSTAT_HEAT);
 
+      // Show initial data in GUI
+      HomekitState state = homekit_get_state();
+      gui_set_curr_temp(temp_humid.temperature);
+      gui_set_target_temp(state.target_temp);
+      gui_set_thermostat_status(state.current_temp >= state.target_temp ? _THERMOSTAT_IDLE : THERMOSTAT_HEAT);
+
+      // Register temperature buttons handler
+      gui_on_btn_pressed_cb(on_temp_btn);
+      break;
   }
 }
+// TODO: can we somehow detect if WiFi goes down? --> it should restart when wifi connection is lost
 
 void app_main() {
   // Init storage

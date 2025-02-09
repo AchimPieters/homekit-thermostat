@@ -73,7 +73,9 @@
     "scr_wifi_setup.h": "c",
     "datetime.h": "c",
     "events.h": "c",
-    "thread": "cpp"
+    "thread": "cpp",
+    "scr_loading.h": "c",
+    "nvs_flash.h": "c"
   },
   "idf.flashType": "JTAG"
 }
