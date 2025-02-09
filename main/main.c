@@ -18,8 +18,6 @@
 #include "hw/sht40.h"
 #include "wifi.h"
 
-#define TEMPERATURE_POLL_PERIOD 10000  // 10s // TODO: add to Kconfig
-
 void task_temperature(void *pvParameters) {
   TempHumidity temp_humid;
 
@@ -49,7 +47,7 @@ void task_temperature(void *pvParameters) {
       }
     }
 
-    vTaskDelay(pdMS_TO_TICKS(TEMPERATURE_POLL_PERIOD));
+    vTaskDelay(pdMS_TO_TICKS(CONFIG_TEMPERATURE_POLL_PERIOD));
   }
 }
 
@@ -118,14 +116,14 @@ void on_temp_btn(ButtonType type) {
   float new_temp = 0;
   if (type == BUTTON_INCREASE) {
     new_temp = target_value + 1;
-    if (new_temp > MAX_TEMP) {
-      new_temp = MAX_TEMP;
+    if (new_temp > CONFIG_THERMOSTAT_MAX_TEMP) {
+      new_temp = CONFIG_THERMOSTAT_MAX_TEMP;
     }
   } else if (type == BUTTON_DECREASE) {
     new_temp = target_value - 1;
 
-    if (new_temp < MIN_TEMP) {
-      new_temp = MIN_TEMP;
+    if (new_temp < CONFIG_THERMOSTAT_MIN_TEMP) {
+      new_temp = CONFIG_THERMOSTAT_MIN_TEMP;
     }
   }
 

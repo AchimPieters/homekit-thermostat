@@ -87,8 +87,8 @@ static homekit_accessory_t *accessories[] = {
 
 static homekit_server_config_t config = {
   .accessories = accessories,
-  .password = CONFIG_ESP_SETUP_CODE,
-  .setupId = CONFIG_ESP_SETUP_ID,
+  .password = CONFIG_HOMEKIT_SETUP_CODE,
+  .setupId = CONFIG_HOMEKIT_SETUP_ID,
 };
 
 void homekit_init(void (*on_homekit_update)(HomekitState state)) {

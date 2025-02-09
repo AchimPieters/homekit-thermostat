@@ -8,9 +8,6 @@
 #define THERMOSTAT_DEVICE_SERIAL "THERMOSTAT-1"
 #define THERMOSTAT_DEVICE_MODEL "ESP32C6"
 #define THERMOSTAT_FW_VERSION "1.0"
-// TODO: define these in KConfig
-#define MIN_TEMP 10
-#define MAX_TEMP 38 // Homekit allows up to 38 degrees
 
 // Target Heating Cooling State (See chapter 9.119 in the Homekit Protocol PDF)
 // 0 = OFF
