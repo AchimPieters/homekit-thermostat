@@ -1,3 +1,5 @@
+#include "lcd.h"
+
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 #include <esp_err.h>
@@ -7,31 +9,32 @@
 #include <esp_lcd_panel_vendor.h>
 #include <esp_lcd_touch_xpt2046.h>
 #include <esp_log.h>
+#include <freertos/FreeRTOS.h>
 #include <lvgl.h>
+
 #include "../gui/gui.h"
-#include "lcd.h"
 
 esp_lcd_panel_handle_t lcd_panel_handle = NULL;
 esp_lcd_touch_handle_t lcd_touch_handle = NULL;
 
 static const char *TAG = "LCD";
 static spi_bus_config_t buscfg = {
-    .sclk_io_num = PIN_NUM_SCLK,
-    .mosi_io_num = PIN_NUM_MOSI,
-    .miso_io_num = PIN_NUM_MISO,
+    .sclk_io_num = CONFIG_LCD_PIN_SCLK,
+    .mosi_io_num = CONFIG_LCD_PIN_MOSI,
+    .miso_io_num = CONFIG_LCD_PIN_MISO,
     .quadwp_io_num = -1,
     .quadhd_io_num = -1,
     .max_transfer_sz = LCD_HORIZONTAL_RES * 80 * sizeof(uint16_t),
 };
 static gpio_config_t bk_gpio_config = {
     .mode = GPIO_MODE_OUTPUT,
-    .pin_bit_mask = 1ULL << PIN_NUM_BK_LIGHT,
+    .pin_bit_mask = 1ULL << CONFIG_LCD_PIN_LIGHT,
 };
 // LCD 
 static esp_lcd_panel_io_handle_t io_handle = NULL;
 static esp_lcd_panel_io_spi_config_t io_config = {
-    .dc_gpio_num = PIN_NUM_LCD_DC,
-    .cs_gpio_num = PIN_NUM_LCD_CS,
+    .dc_gpio_num = CONFIG_LCD_PIN_DC,
+    .cs_gpio_num = CONFIG_LCD_PIN_CS,
     .pclk_hz = LCD_PIXEL_CLOCK_HZ,
     .lcd_cmd_bits = LCD_CMD_BITS,
     .lcd_param_bits = LCD_PARAM_BITS,
@@ -41,13 +44,13 @@ static esp_lcd_panel_io_spi_config_t io_config = {
     // .user_ctx
 };
 static esp_lcd_panel_dev_config_t panel_config = {
-    .reset_gpio_num = PIN_NUM_LCD_RST,
+    .reset_gpio_num = CONFIG_LCD_PIN_RST,
     .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
     .bits_per_pixel = 16,
 };
 // TOUCH
 static esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-static esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(PIN_NUM_TOUCH_CS);
+static esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(CONFIG_LCD_PIN_TOUCH_CS);
 static esp_lcd_touch_config_t tp_config = {
     .x_max = LCD_HORIZONTAL_RES,
     .y_max = LCD_VERTICAL_RES,
@@ -89,5 +92,5 @@ void lcd_init() {
   ESP_ERROR_CHECK(esp_lcd_touch_new_spi_xpt2046(tp_io_handle, &tp_config, &lcd_touch_handle));
 
   ESP_LOGI(TAG, "Turn on LCD backlight");
-  gpio_set_level(PIN_NUM_BK_LIGHT, LCD_BK_LIGHT_ON_LEVEL);
+  gpio_set_level(CONFIG_LCD_PIN_LIGHT, LCD_BK_LIGHT_ON_LEVEL);
 }

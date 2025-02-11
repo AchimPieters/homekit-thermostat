@@ -33,8 +33,44 @@ Homekit Code (Scan this after WiFi is provisioned)
 
 <img src="./assets/homekit-qrcode.png" width="200"/>
 
-## Components
-- esp32 - write exact model
-- sht40
-- relay type
-- display type
+## Electrical circuit
+
+- [ESP32-C6](https://www.laskakit.cz/en/espressif-esp32-c6-devkitm-1-wifi-6--bluetooth-5--zigbee/) board
+- [SHT-40](https://www.laskakit.cz/en/laskakit-sht40-senzor-teploty-a-vlhkosti-vzduchu/) temperature and humidity sensor
+- [Optical relay](https://www.laskakit.cz/en/1-kanal-5v-rele-modul-s-optickym-oddelenim--high-low-level--250vac-10a/) 5V 250V 10A 
+- [2.4" 240x320](https://www.laskakit.cz/en/2-4--palcovy-barevny-dotykovy-tft-lcd-displej-240x320-ili9341-spi/) TFT display
+
+<p align="center">
+<img src="./assets/diagram.png" width="400" />
+</p>
+
+| SHT-40 | ESP32 |
+| --- | ---- |
+| VCC | 3.3V |
+| GND | GND  |
+| SDA | 6    |
+| SCL | 7    |
+
+| Relay | ESP32 |
+| --- | ---- |
+| VCC | 5V |
+| GND | GND  |
+| IN | 12    |
+
+| LCD | ESP32 |
+| --- | ---- |
+| VCC | 3.3V |
+| GND | GND  |
+| SCLK | 2  |
+| MISO | 1  |
+| MOSI | 10  |
+| DC | 3    |
+| Reset | 4 |
+| CS | 0    |
+| Backlight | 5 |
+| T_CS | 11   |
+| T_CLK | 2  |
+| T_MISO | 1 |
+| T_MOSI | 10 |
+
+_Note_: Both LCD and the touch screen share the same SPI connection.

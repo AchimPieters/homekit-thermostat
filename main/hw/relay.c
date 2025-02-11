@@ -8,17 +8,17 @@ static const char *TAG = "RELAY";
 bool relay_turned_on = false;
 
 void relay_init() {
-  gpio_set_direction(CONFIG_RELAY_GPIO_PIN, GPIO_MODE_OUTPUT);
+  gpio_set_direction(CONFIG_RELAY_PIN, GPIO_MODE_OUTPUT);
 }
 
 void relay_on() {
   ESP_LOGI(TAG, "Turning relay ON");
-  gpio_set_level(CONFIG_RELAY_GPIO_PIN, 1);
+  gpio_set_level(CONFIG_RELAY_PIN, 1);
   relay_turned_on = true;
 }
 
 void relay_off() {
   ESP_LOGI(TAG, "Turning relay OFF");
-  gpio_set_level(CONFIG_RELAY_GPIO_PIN, 0);
+  gpio_set_level(CONFIG_RELAY_PIN, 0);
   relay_turned_on = false;
 }

@@ -144,8 +144,6 @@ void gui_set_target_temp(float target_temp) {
   }
 
   char text[20];
-
-  // target temperature
   sprintf(text, "#0096FF %.1f°C#", target_temp);
   lv_label_set_text(label_targ_temp, text);
 }
@@ -156,8 +154,6 @@ void gui_set_curr_temp(float current) {
   }
 
   char text[20];
-
-  // current temperature
   sprintf(text, "#FFBF00 %.1f°C#", current);
   lv_label_set_text(label_curr_temp, text);
 }
