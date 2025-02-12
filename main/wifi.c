@@ -78,8 +78,6 @@ static uint8_t custom_service_uuid[] = {
     0x02,
 };
 
-static bool prov_mgr_initialized = false;
-
 // Event handlers
 static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
   static int retries;
@@ -96,7 +94,7 @@ static void on_network_prov_event(void *arg, esp_event_base_t event_base, int32_
                (const char *)wifi_sta_cfg->password);
 
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_STARTED, NULL, 0);
-      char *msg = "Received Wi-Fi credentials";
+      char *msg = "Received Wi-Fi credentials...";
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
       break;
     }
@@ -219,14 +217,14 @@ void wifi_init(void) {
   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_wifi_event, NULL));
   ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_ip_event, NULL));
 
-  esp_netif_create_default_wifi_sta();
+  esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+  esp_netif_set_hostname(sta_netif, "ESP32-Homekit-Thermostat");
+
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 }
 
 bool wifi_is_provisioned(void) {
-  // return false;  // TODO: temp
-
   bool provisioned = false;
   ESP_ERROR_CHECK(network_prov_mgr_is_wifi_provisioned(&provisioned));
   return provisioned;
@@ -240,15 +238,8 @@ void wifi_init_provisioning(char *payload, size_t payload_len) {
       .scheme_event_handler = NETWORK_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
   };
 
-  // TODO: fix how to start provisioning multiple times or restart?
-  // or maybe we should just keep the QR code and not call this thing multiple times
-  // and make qr_code a static var in wifi.c and clear it after provisioning is done
-
-  // If this function is called multiple times, first we need to deinit the ongoing provisioning
-
   ESP_LOGI(TAG, "Starting provisioning");
   ESP_ERROR_CHECK(network_prov_mgr_init(config));
-  prov_mgr_initialized = true;
 
   char device_name[12];
   get_device_name(device_name, sizeof(device_name));
@@ -284,4 +275,8 @@ void wifi_connect() {
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_start());
+}
+
+void wifi_reset_provisioning() {
+  network_prov_mgr_reset_wifi_sm_state_for_reprovision();
 }

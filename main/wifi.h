@@ -11,3 +11,4 @@ void wifi_init(void);
 bool wifi_is_provisioned(void);
 void wifi_init_provisioning(char *payload, size_t payload_len);
 void wifi_connect(void);
+void wifi_reset_provisioning(void);

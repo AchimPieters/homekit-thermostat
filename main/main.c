@@ -106,7 +106,12 @@ void on_homekit_update(HomekitState state) {
 }
 
 void on_wifi_reconnect_btn(void) {
-  eventloop_dispatch(HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING, NULL, 0);
+  // Ideally we would show the QR code screen again and restart the provisioning flow
+  // But this motherfucker keeps crashing and I already spent too much time trying to make it work
+  // while it might never be actually used at all. So fuck this shit.
+  // I'll just restart the whole ESP32 board and start over.
+  wifi_reset_provisioning();
+  esp_restart();
 }
 
 void on_temp_btn(ButtonType type) {
@@ -142,11 +147,7 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       ESP_LOGI(tag, "Received WiFi provisioning request.");
       char qr_data[150] = {0};
       wifi_init_provisioning(qr_data, sizeof(qr_data));
-      // wifi_init_provisioning(qr_data, sizeof(qr_data)); // todo temp
       gui_wifi_scr(qr_data, sizeof(qr_data));
-
-      // gui_loading_scr();
-      // gui_loading_show_reconnect_btn(on_wifi_reconnect_btn);
       break;
     case HOMEKIT_THERMOSTAT_WIFI_CONN_ERROR:
       ESP_LOGI(tag, "WiFi connection error.");
@@ -154,7 +155,6 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       break;
     case HOMEKIT_THERMOSTAT_WIFI_CONNECTED:
       ESP_LOGI(tag, "WiFi connected.");
-
       // Start the Homekit server
       homekit_init(on_homekit_update);
 
