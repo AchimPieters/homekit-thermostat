@@ -82,10 +82,6 @@ void lvgl_timer_task(void *arg) {
 
 // Display touch callback
 static void lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-  // TODO(improvement): use interrupts instead of polling
-  //  note - check if these readings are done by LVGL or by the driver itself, who's sending so many read requests?
-  // printf("touch callback\n");
-
   uint16_t touchpad_x[1] = {0};
   uint16_t touchpad_y[1] = {0};
   uint8_t touchpad_cnt = 0;
@@ -112,13 +108,13 @@ void gui_init(void) {
 
   // alloc draw buffers used by LVGL
   // it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized
-  buf1 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
+  buf1 = heap_caps_malloc(LCD_HORIZONTAL_RES * 50 * sizeof(lv_color_t), MALLOC_CAP_DMA);
   assert(buf1);
-  buf2 = heap_caps_malloc(LCD_HORIZONTAL_RES * 20 * sizeof(lv_color_t), MALLOC_CAP_DMA);
+  buf2 = heap_caps_malloc(LCD_HORIZONTAL_RES * 50 * sizeof(lv_color_t), MALLOC_CAP_DMA);
   assert(buf2);
 
   // initialize LVGL draw buffers
-  lv_disp_draw_buf_init(&lvgl_disp_buf, buf1, buf2, LCD_HORIZONTAL_RES * 20); // TODO: what is this 20?
+  lv_disp_draw_buf_init(&lvgl_disp_buf, buf1, buf2, LCD_HORIZONTAL_RES * 50); // 50 - number of lines in the frame buffer
 
   ESP_LOGI(TAG, "Register display driver to LVGL");
   lv_disp_drv_init(&lvgl_disp_drv);

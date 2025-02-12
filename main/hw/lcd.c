@@ -40,14 +40,13 @@ static esp_lcd_panel_io_spi_config_t io_config = {
     .lcd_param_bits = LCD_PARAM_BITS,
     .spi_mode = 0,
     .trans_queue_depth = 10,
-    // .on_color_trans_done
-    // .user_ctx
 };
 static esp_lcd_panel_dev_config_t panel_config = {
     .reset_gpio_num = CONFIG_LCD_PIN_RST,
     .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
     .bits_per_pixel = 16,
 };
+
 // TOUCH
 static esp_lcd_panel_io_handle_t tp_io_handle = NULL;
 static esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(CONFIG_LCD_PIN_TOUCH_CS);
@@ -55,7 +54,7 @@ static esp_lcd_touch_config_t tp_config = {
     .x_max = LCD_HORIZONTAL_RES,
     .y_max = LCD_VERTICAL_RES,
     .rst_gpio_num = -1,
-    .int_gpio_num = -1,  // TODO: would be nice to actually use interrupts instead of polling
+    .int_gpio_num = -1,
     .flags = {
         .swap_xy = false,
         .mirror_x = false,

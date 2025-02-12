@@ -165,7 +165,6 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       break;
     case HOMEKIT_THERMOSTAT_INIT_STARTED:
       ESP_LOGI(tag, "Initialization started.");
-      // TODO: remove QR code screen from memory
       gui_loading_scr();
       break;
     case HOMEKIT_THERMOSTAT_INIT_UPDATE:
