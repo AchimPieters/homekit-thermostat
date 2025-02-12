@@ -61,7 +61,7 @@ void gui_main_scr() {
   ESP_LOGI(TAG, "Rendering");
 
   // create main flexbox row container
-  main_cont = lv_obj_create(lv_scr_act());
+  main_cont = lv_obj_create(NULL);
   lv_obj_set_size(main_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_align(main_cont, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_flex_flow(main_cont, LV_FLEX_FLOW_ROW);
@@ -121,6 +121,8 @@ void gui_main_scr() {
 
   create_btn(&btn_incr, label_btn_incr, BUTTON_INCREASE);
   create_btn(&btn_decr, label_btn_decr, BUTTON_DECREASE);
+
+  gui_load_scr(main_cont);
 }
 
 // GUI Handlers
@@ -154,7 +156,7 @@ void gui_set_curr_temp(float current) {
   }
 
   char text[20];
-  sprintf(text, "#FFBF00 %.1f°C#", current);
+  sprintf(text, "#ffa500 %.1f°C#", current);
   lv_label_set_text(label_curr_temp, text);
 }
 
