@@ -20,6 +20,11 @@ static char *logs = NULL;
 void gui_loading_scr() {
   ESP_LOGI(TAG, "Rendering");
 
+  if (!lvgl_lock(-1, "gui_loading_scr")) {
+    ESP_LOGE(TAG, "Failed to acquire lock");
+    return;
+  }
+
   // create main flexbox row container
   scr_loading = lv_obj_create(NULL);
   lv_obj_set_size(scr_loading, LV_PCT(100), LV_PCT(100));
@@ -41,11 +46,19 @@ void gui_loading_scr() {
   lv_label_set_long_mode(lbl_logs, LV_LABEL_LONG_WRAP);
   lv_obj_set_width(lbl_logs, lv_pct(100));
 
+  // this must be last thing called before showing the screen
+  lvgl_unlock();
+
   // show screen on the display
   gui_load_scr(scr_loading);
 }
 
 void gui_loading_show_reconnect_btn(on_wifi_reconnect btn_clicked) {
+  if (!lvgl_lock(-1, "gui_loading_show_reconnect_btn")) {
+    ESP_LOGE(TAG, "Failed to acquire lock for showing loading buttons");
+    return;
+  }
+
   // create a button container
   btn_cont = lv_obj_create(scr_loading);
   lv_obj_set_flex_grow(btn_cont, 1);
@@ -62,6 +75,8 @@ void gui_loading_show_reconnect_btn(on_wifi_reconnect btn_clicked) {
   lv_obj_t *lbl_wifi = lv_label_create(btn_wifi);
   lv_label_set_text(lbl_wifi, "Reconnect WiFi");
   lv_obj_center(lbl_wifi);
+
+  lvgl_unlock();
 }
 
 void gui_loading_add_log(const char *msg) {
@@ -95,7 +110,9 @@ void gui_loading_add_log(const char *msg) {
   strcat(logs, "\n");
 
   // Update LVGL label
-  lv_label_set_text(lbl_logs, logs);
-
-  lv_obj_scroll_to_y(logs_cont, LV_COORD_MAX, LV_ANIM_ON);
+  if (lvgl_lock(-1, "gui_loading_add_log")) {
+    lv_label_set_text(lbl_logs, logs);
+    lv_obj_scroll_to_y(logs_cont, LV_COORD_MAX, LV_ANIM_ON);
+    lvgl_unlock();
+  }
 }

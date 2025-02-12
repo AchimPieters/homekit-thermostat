@@ -13,7 +13,7 @@ extern lv_disp_drv_t lvgl_disp_drv;
 bool lvgl_notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 void lvgl_flush_cb(lv_disp_drv_t *display_drv, const lv_area_t *area, lv_color_t *color_map);
 void lvgl_increase_tick(void *arg);
-bool lvgl_lock(int timeout_ms);
+bool lvgl_lock(int timeout_ms, char* msg);
 void lvgl_unlock(void);
 
 void gui_init(void);

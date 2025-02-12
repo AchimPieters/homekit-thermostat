@@ -49,7 +49,8 @@ void lvgl_increase_tick(void *arg) {
   lv_tick_inc(LVGL_TICK_PERIOD_MS);
 }
 
-bool lvgl_lock(int timeout_ms) {
+bool lvgl_lock(int timeout_ms, char* msg) {
+  ESP_LOGD(TAG, "LVGL Lock [%s]", msg);
   // Convert timeout in milliseconds to FreeRTOS ticks
   // If `timeout_ms` is set to -1, the program will block until the condition is met
   const TickType_t timeout_ticks = (timeout_ms == -1) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
@@ -57,6 +58,7 @@ bool lvgl_lock(int timeout_ms) {
 }
 
 void lvgl_unlock(void) {
+  ESP_LOGD(TAG, "LVGL Unlock");
   xSemaphoreGiveRecursive(lvgl_mux);
 }
 
@@ -66,7 +68,7 @@ void lvgl_timer_task(void *arg) {
   
   while (1) {
     // Lock the mutex due to the LVGL APIs are not thread-safe
-    if (lvgl_lock(-1)) {
+    if (lvgl_lock(-1, "lv_timer_handler")) {
       task_delay_ms = lv_timer_handler();
       // Release the mutex
       lvgl_unlock();
@@ -152,7 +154,7 @@ void gui_init(void) {
 
 void gui_load_scr(lv_obj_t *scr) {
   // Lock the mutex due to the LVGL APIs are not thread-safe
-  if (lvgl_lock(-1)) {
+  if (lvgl_lock(-1, "gui_load_scr")) {
     lv_scr_load(scr);
     lvgl_unlock();
   }

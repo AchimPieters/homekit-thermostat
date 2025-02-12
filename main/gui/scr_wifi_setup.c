@@ -12,6 +12,11 @@ static lv_obj_t *scr_wifi_setup;
 void gui_wifi_scr(char *qr_data, size_t qr_data_len) {
   ESP_LOGI(TAG, "Rendering");
 
+  if (!lvgl_lock(-1, "gui_wifi_scr")) {
+    ESP_LOGE(TAG, "Failed to acquire lock");
+    return;
+  }
+
   // create main flexbox row container
   scr_wifi_setup = lv_obj_create(NULL);
   lv_obj_set_size(scr_wifi_setup, LV_PCT(100), LV_PCT(100));
@@ -44,6 +49,9 @@ void gui_wifi_scr(char *qr_data, size_t qr_data_len) {
   lv_obj_t *qr = lv_qrcode_create(qr_container, 130, lv_color_black(), lv_color_white());
   lv_qrcode_update(qr, qr_data, qr_data_len);
 
+  // this must be last thing called before showing the screen
+  lvgl_unlock();
+  
   // show screen on the display
   gui_load_scr(scr_wifi_setup);
 }

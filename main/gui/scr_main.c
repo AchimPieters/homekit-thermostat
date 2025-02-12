@@ -34,7 +34,7 @@ static lv_style_t style_btn_disabled;
 temp_button_callback btn_pressed_callback;
 
 static void on_btn_pressed(lv_event_t *e) {
-  lv_obj_t *btn = lv_event_get_target(e);
+  lv_obj_t *btn  = lv_event_get_target(e);
   ButtonType btn_type = (ButtonType)lv_obj_get_user_data(btn);
 
   // If the callback function is defined, call it
@@ -59,6 +59,11 @@ static void create_btn(lv_obj_t **btn, lv_obj_t *lbl, ButtonType btn_type) {
 
 void gui_main_scr() {
   ESP_LOGI(TAG, "Rendering");
+
+  if (!lvgl_lock(-1, "gui_main_scr")) {
+    ESP_LOGE(TAG, "Failed to acquire lock");
+    return;
+  }
 
   // create main flexbox row container
   main_cont = lv_obj_create(NULL);
@@ -122,6 +127,9 @@ void gui_main_scr() {
   create_btn(&btn_incr, label_btn_incr, BUTTON_INCREASE);
   create_btn(&btn_decr, label_btn_decr, BUTTON_DECREASE);
 
+  // this must be last thing called before showing the screen
+  lvgl_unlock();
+
   gui_load_scr(main_cont);
 }
 
@@ -147,7 +155,12 @@ void gui_set_target_temp(float target_temp) {
 
   char text[20];
   sprintf(text, "#0096FF %.1f°C#", target_temp);
-  lv_label_set_text(label_targ_temp, text);
+  if (lvgl_lock(-1, "gui_set_target_temp")) {
+    lv_label_set_text(label_targ_temp, text);
+    lvgl_unlock();
+  } else {
+    ESP_LOGE(TAG, "Failed to acquire lock for target temp");
+  }
 }
 
 void gui_set_curr_temp(float current) {
@@ -157,7 +170,12 @@ void gui_set_curr_temp(float current) {
 
   char text[20];
   sprintf(text, "#ffa500 %.1f°C#", current);
-  lv_label_set_text(label_curr_temp, text);
+  if (lvgl_lock(-1, "gui_set_curr_temp")) {
+    lv_label_set_text(label_curr_temp, text);
+    lvgl_unlock();
+  } else {
+    ESP_LOGE(TAG, "Failed to acquire lock for current temp");
+  }
 }
 
 void gui_set_thermostat_status(ThermostatStatus thermostat_status) {
@@ -165,20 +183,25 @@ void gui_set_thermostat_status(ThermostatStatus thermostat_status) {
     return;
   }
 
-  switch (thermostat_status) {
-    case THERMOSTAT_HEAT:
-      lv_label_set_text(label_thermostat_status, "#ffa500 heating #");
-      gui_enable_btns(true);
-      break;
-    case _THERMOSTAT_IDLE:
-      lv_label_set_text(label_thermostat_status, "#50C878 idle #");
-      gui_enable_btns(true);
-      break;
-    case THERMOSTAT_OFF:
-    default:
-      lv_label_set_text(label_thermostat_status, "off");
-      gui_enable_btns(false);
-      break;
+  if (lvgl_lock(-1, "gui_set_thermostat_status")) {
+    switch (thermostat_status) {
+      case THERMOSTAT_HEAT:
+        lv_label_set_text(label_thermostat_status, "#ffa500 heating #");
+        gui_enable_btns(true);
+        break;
+      case _THERMOSTAT_IDLE:
+        lv_label_set_text(label_thermostat_status, "#50C878 idle #");
+        gui_enable_btns(true);
+        break;
+      case THERMOSTAT_OFF:
+      default:
+        lv_label_set_text(label_thermostat_status, "off");
+        gui_enable_btns(false);
+        break;
+    }
+    lvgl_unlock();
+  } else {
+    ESP_LOGE(TAG, "Failed to acquire lock for status");
   }
 }
 
@@ -187,8 +210,11 @@ void gui_set_datetime(const char *date, const char *time) {
     return;
   }
 
-  lv_label_set_text(label_date, date);
-  lv_label_set_text(time_label, time);
+  if (lvgl_lock(-1, "gui_set_datetime")) {
+    lv_label_set_text(label_date, date);
+    lv_label_set_text(time_label, time);
+    lvgl_unlock();
+  } else {
+    ESP_LOGE(TAG, "Failed to acquire lock for datetime");
+  }
 }
-
-// TODO: add locks to gui handlers
