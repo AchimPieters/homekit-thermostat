@@ -72,7 +72,6 @@ void lvgl_timer_task(void *arg) {
     // Lock the mutex due to the LVGL APIs are not thread-safe
     if (lvgl_lock(-1, "lv_timer_handler")) {
       task_delay_ms = lv_timer_handler();
-      // Release the mutex
       lvgl_unlock();
     }
     if (task_delay_ms > LVGL_TASK_MAX_DELAY_MS) {
