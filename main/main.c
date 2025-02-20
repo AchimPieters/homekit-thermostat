@@ -155,11 +155,11 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       break;
     case HOMEKIT_THERMOSTAT_WIFI_CONNECTED:
       ESP_LOGI(tag, "WiFi connected.");
-      // Start the Homekit server
-      homekit_init(on_homekit_update);
-
       // Fetch the current time from the internet
       datetime_init();
+
+      // Start the Homekit server
+      homekit_init(on_homekit_update);
 
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_DONE, NULL, 0);
       break;

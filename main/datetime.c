@@ -24,8 +24,11 @@ void datetime_init(void) {
   const int retry_count = 15;
   while (esp_netif_sntp_sync_wait(2000 / portTICK_PERIOD_MS) == ESP_ERR_TIMEOUT && ++retry < retry_count) {
     char msg[50];
-    snprintf(msg, sizeof(msg), "Waiting for system time to be set... (%d/%d)", retry, retry_count);
-    eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
+    snprintf(msg, sizeof(msg), "Fetching current time... (%d/%d)", retry, retry_count);
+    eventloop_dispatch(HOMEKIT_THERMOSTAT_LOG, msg, strlen(msg) + 1);
+
+    // Add a short delay to avoid running the loop too fast
+    vTaskDelay(1000 / portTICK_PERIOD_MS); // 1-second delay
   }
 
   esp_netif_sntp_deinit();
