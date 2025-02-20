@@ -12,8 +12,8 @@ void eventloop_init(eventloop_handler evt_handler) {
   ESP_LOGI("EVENTLOOP", "Initializing Homekit Thermostat event loop");
 
   esp_event_loop_args_t args = {
-      .queue_size = 5,                                  // Maximum number of events in the queue
-      .task_name = "custom_event_task",                 // Task name (NULL = no dedicated task)
+      .queue_size = 20,                                  // Maximum number of events in the queue
+      .task_name = "eventloop_task",
       .task_priority = uxTaskPriorityGet(NULL),         // Same priority as current task
       .task_stack_size = configMINIMAL_STACK_SIZE * 3,  // Stack size for the event task
       .task_core_id = tskNO_AFFINITY                    // Allow running on any core
