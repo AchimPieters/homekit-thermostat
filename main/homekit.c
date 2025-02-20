@@ -96,7 +96,7 @@ void homekit_init(void (*on_homekit_update)(HomekitState state)) {
   on_homekit_update_cb = on_homekit_update;
 
   char *msg = "Starting HomeKit server...";
-  eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_UPDATE, msg, strlen(msg) + 1);
+  eventloop_dispatch(HOMEKIT_THERMOSTAT_LOG, msg, strlen(msg) + 1);
   
   homekit_server_init(&config);
 }

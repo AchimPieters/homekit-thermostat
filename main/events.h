@@ -5,12 +5,12 @@ typedef enum {
   HOMEKIT_THERMOSTAT_WIFI_REQUEST_PROVISIONING,
   // Trigerred after thermostat is connected to the WiFi
   HOMEKIT_THERMOSTAT_WIFI_CONNECTED,
-  // Trigerred when there was a WiFi connection error
-  HOMEKIT_THERMOSTAT_WIFI_CONN_ERROR,
+  // Trigerred when thermostat loses WiFi connection
+  HOMEKIT_THERMOSTAT_WIFI_DISCONNECTED,
   // Trigerred when the initialization process starts (after WiFi credentials are received)
   HOMEKIT_THERMOSTAT_INIT_STARTED,
   // Trigerred when there is an update during the initialization process (e.g. Wifi connected, Homekit started, ...)
-  HOMEKIT_THERMOSTAT_INIT_UPDATE,
+  HOMEKIT_THERMOSTAT_LOG,
   // Trigerred when the initialization has completed, so the thermostat can start working
   HOMEKIT_THERMOSTAT_INIT_DONE,
 } HomekitThermostatEventID;

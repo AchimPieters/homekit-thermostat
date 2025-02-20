@@ -18,6 +18,10 @@
 #include "hw/sht40.h"
 #include "wifi.h"
 
+static bool thermostat_initialized = false;
+static int failed_wifi_attempts = 0;
+static bool should_wifi_retry = true;
+
 void task_temperature(void *pvParameters) {
   TempHumidity temp_humid;
 
@@ -99,12 +103,12 @@ void on_homekit_update(HomekitState state) {
   gui_set_target_temp(state.target_temp);
 }
 
-void on_wifi_reconnect_btn(void) {
+void restart_wifi_prov() {
   // Ideally we would show the QR code screen again and restart the provisioning flow
   // But this motherfucker keeps crashing and I already spent too much time trying to make it work
   // while it might never be actually used at all. So fuck this shit.
   // I'll just restart the whole ESP32 board and start over.
-  wifi_reset_provisioning();
+  wifi_reset();
   esp_restart();
 }
 
@@ -140,12 +144,12 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       // Init the provisioning and display the QR code
       ESP_LOGI(tag, "Received WiFi provisioning request.");
       char qr_data[150] = {0};
-      wifi_init_provisioning(qr_data, sizeof(qr_data));
-      gui_wifi_scr(qr_data, sizeof(qr_data));
-      break;
-    case HOMEKIT_THERMOSTAT_WIFI_CONN_ERROR:
-      ESP_LOGI(tag, "WiFi connection error.");
-      gui_loading_show_reconnect_btn(on_wifi_reconnect_btn);
+      if (wifi_init_provisioning(qr_data, sizeof(qr_data)) == -1) {
+        restart_wifi_prov();
+      } else {
+        gui_wifi_scr(qr_data, sizeof(qr_data));
+      }
+      failed_wifi_attempts = 0;
       break;
     case HOMEKIT_THERMOSTAT_WIFI_CONNECTED:
       ESP_LOGI(tag, "WiFi connected.");
@@ -157,11 +161,39 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
 
       eventloop_dispatch(HOMEKIT_THERMOSTAT_INIT_DONE, NULL, 0);
       break;
+    case HOMEKIT_THERMOSTAT_WIFI_DISCONNECTED:
+      ESP_LOGI(tag, "WiFi disconnected.");
+
+      if (!should_wifi_retry) {
+        break;
+      }
+
+      // If WiFi goes down, first show the loading screen so we can communicate with the user 
+      gui_loading_scr();
+
+      // If thermostat hasn't been initialized yet, it means it wasn't able to connect to the WiFi after starting
+      // In that case, show the Reconnect WiFi button after 5 failed attempts
+      if (!thermostat_initialized) {
+        if (++failed_wifi_attempts >= 5) {
+          gui_loading_show_reconnect_btn(restart_wifi_prov);
+          should_wifi_retry = false;
+        } {
+          // Try to reconnect
+          printf("reconnecting because not initialized and attempts >= 5 (%d)\n", failed_wifi_attempts);
+          wifi_reconnect();
+        }
+      } else {
+        // Otherwise if the thermostat has been already initialized,
+        // keep reconnecting forever (until the connection comes back up)
+        printf("reconnecting forever because initialized \n");
+        wifi_reconnect();
+      }
+      break;
     case HOMEKIT_THERMOSTAT_INIT_STARTED:
       ESP_LOGI(tag, "Initialization started.");
       gui_loading_scr();
       break;
-    case HOMEKIT_THERMOSTAT_INIT_UPDATE:
+    case HOMEKIT_THERMOSTAT_LOG:
       if (event_data != NULL) {
         gui_loading_add_log((char *)event_data);
       }
@@ -189,10 +221,11 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
 
       // Register temperature buttons handler
       gui_on_btn_pressed_cb(on_temp_btn);
+
+      thermostat_initialized = true;
       break;
   }
 }
-// TODO: can we somehow detect if WiFi goes down? --> it should restart when wifi connection is lost
 
 void app_main() {
   // Init storage
