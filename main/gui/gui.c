@@ -12,6 +12,7 @@
 #include "gui.h"
 #include "fonts.h"
 #include "../hw/lcd.h"
+#include "../tasks/tasks.h"
 
 lv_disp_draw_buf_t lvgl_disp_buf;  // contains internal graphic buffer(s) called draw buffer(s)
 lv_disp_drv_t lvgl_disp_drv;       // contains callback functions
@@ -62,25 +63,6 @@ bool lvgl_lock(int timeout_ms, char* msg) {
 void lvgl_unlock(void) {
   ESP_LOGD(TAG, "LVGL Unlock");
   xSemaphoreGiveRecursive(lvgl_mux);
-}
-
-void lvgl_timer_task(void *arg) {
-  ESP_LOGI(TAG, "Starting LVGL timer task");
-  uint32_t task_delay_ms = LVGL_TASK_MAX_DELAY_MS;
-  
-  while (1) {
-    // Lock the mutex due to the LVGL APIs are not thread-safe
-    if (lvgl_lock(-1, "lv_timer_handler")) {
-      task_delay_ms = lv_timer_handler();
-      lvgl_unlock();
-    }
-    if (task_delay_ms > LVGL_TASK_MAX_DELAY_MS) {
-      task_delay_ms = LVGL_TASK_MAX_DELAY_MS;
-    } else if (task_delay_ms < LVGL_TASK_MIN_DELAY_MS) {
-      task_delay_ms = LVGL_TASK_MIN_DELAY_MS;
-    }
-    vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
-  }
 }
 
 // Display touch callback
@@ -150,7 +132,7 @@ void gui_init(void) {
   lv_disp_set_rotation(disp, LV_DISP_ROT_90);
 
   // LVGL timer task
-  xTaskCreate(lvgl_timer_task, "LVGL timer", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
+  xTaskCreate(task_lvgl, "LVGL timer", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
 }
 
 void gui_load_scr(lv_obj_t *scr) {

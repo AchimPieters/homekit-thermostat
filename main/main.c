@@ -17,59 +17,11 @@
 #include "hw/relay.h"
 #include "hw/sht40.h"
 #include "wifi.h"
+#include "tasks/tasks.h"
 
 static bool thermostat_initialized = false;
 static int failed_wifi_attempts = 0;
 static bool should_wifi_retry = true;
-
-void task_temperature(void *pvParameters) {
-  TempHumidity temp_humid;
-
-  while (1) {
-    temp_humid = sht40_measure_temp();
-    ESP_LOGI("SHT40", "Humidity: %.1f%% Temperature: %.1fC", temp_humid.humidity, temp_humid.temperature);
-
-    // Update temperature in homekit
-    homekit_set_curr_temp(temp_humid);
-
-    // Update temperature in GUI
-    gui_set_curr_temp(temp_humid.temperature);
-
-    HomekitState state = homekit_get_state();
-
-    if (state.current_state == THERMOSTAT_HEAT) {
-      // If the current temperature is higher that the target,
-      // Turn off the relay and show the IDLE state on the display
-      if (state.current_temp > state.target_temp && relay_turned_on) {
-        ESP_LOGI("TEMP_TASK", "Current temperature (%.1f) is higher that the target (%.1f). Switching relay OFF", state.current_temp, state.target_temp);
-        relay_off();
-        gui_set_thermostat_status(_THERMOSTAT_IDLE);
-      } else if (state.current_temp < state.target_temp && !relay_turned_on) {
-        ESP_LOGI("TEMP_TASK", "Current temperature (%.1f) is lower that the target (%.1f). Switching relay ON", state.current_temp, state.target_temp);
-        relay_on();
-        gui_set_thermostat_status(THERMOSTAT_HEAT);
-      }
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(CONFIG_TEMPERATURE_POLL_PERIOD));
-  }
-}
-
-void task_datetime(void *pvParameters) {
-  struct tm now;
-  char time_buff[6];
-  char date_buff[25];
-
-  while (1) {
-    now = datetime_now();
-
-    datetime_timef(time_buff, sizeof(time_buff), &now);
-    datetime_datef(date_buff, sizeof(date_buff), &now);
-    gui_set_datetime(date_buff, time_buff);
-
-    vTaskDelay(pdMS_TO_TICKS(1000));  // 1s
-  }
-}
 
 void on_homekit_update(HomekitState state) {
   // If the target state is set to either OFF or to one of unsupported states,
@@ -206,7 +158,7 @@ void on_eventloop_evt(void *arg, esp_event_base_t event_base, int32_t event_id, 
       xTaskCreate(task_temperature, "TempTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 
       // Start the time update task
-      xTaskCreate(task_datetime, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
+      xTaskCreate(task_time, "TimeTask", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL);
 
       // Set initial data in Homekit
       TempHumidity temp_humid = sht40_measure_temp();

@@ -4,6 +4,7 @@ file(GLOB SRC_FILES
     "*.c"
     "gui/*.c"
     "hw/*.c"
+    "tasks/*.c"
 )
 
 idf_component_register(
