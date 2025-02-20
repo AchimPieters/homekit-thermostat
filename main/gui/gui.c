@@ -18,6 +18,8 @@ lv_disp_drv_t lvgl_disp_drv;       // contains callback functions
 
 static const char *TAG = "GUI";
 
+lv_obj_t *gui_active_scr = NULL;
+
 // LVGL stuff
 // ------------------------
 static SemaphoreHandle_t lvgl_mux = NULL;
@@ -156,6 +158,7 @@ void gui_load_scr(lv_obj_t *scr) {
   // Lock the mutex due to the LVGL APIs are not thread-safe
   if (lvgl_lock(-1, "gui_load_scr")) {
     lv_scr_load(scr);
+    gui_active_scr = scr;
     lvgl_unlock();
   }
 }

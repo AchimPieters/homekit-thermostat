@@ -9,6 +9,7 @@
 
 extern lv_disp_draw_buf_t lvgl_disp_buf;  // contains internal graphic buffer(s) called draw buffer(s)
 extern lv_disp_drv_t lvgl_disp_drv;
+extern lv_obj_t *gui_active_scr;
 
 bool lvgl_notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 void lvgl_flush_cb(lv_disp_drv_t *display_drv, const lv_area_t *area, lv_color_t *color_map);
