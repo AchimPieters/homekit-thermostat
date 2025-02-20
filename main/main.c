@@ -68,12 +68,6 @@ void task_datetime(void *pvParameters) {
 }
 
 void on_homekit_update(HomekitState state) {
-  printf("Update from homekit\n");
-  printf("current state: %d\n", state.current_state);
-  printf("target state: %d\n", state.target_state);
-  printf("current temp: %1.f\n", state.current_temp);
-  printf("target temp: %1.f\n", state.target_temp);
-
   // If the target state is set to either OFF or to one of unsupported states,
   // turn the thermostat off
   if (state.target_state == THERMOSTAT_OFF || state.target_state == _THERMOSTAT_AUTO || state.target_state == _THERMOSTAT_COOL) {
@@ -120,12 +114,12 @@ void on_temp_btn(ButtonType type) {
   // Update target temperature
   float new_temp = 0;
   if (type == BUTTON_INCREASE) {
-    new_temp = target_value + 1;
+    new_temp = target_value + 0.5;
     if (new_temp > CONFIG_THERMOSTAT_MAX_TEMP) {
       new_temp = CONFIG_THERMOSTAT_MAX_TEMP;
     }
   } else if (type == BUTTON_DECREASE) {
-    new_temp = target_value - 1;
+    new_temp = target_value - 0.5;
 
     if (new_temp < CONFIG_THERMOSTAT_MIN_TEMP) {
       new_temp = CONFIG_THERMOSTAT_MIN_TEMP;
