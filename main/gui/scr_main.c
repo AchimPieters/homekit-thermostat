@@ -169,7 +169,7 @@ void gui_set_curr_temp(float current) {
   }
 
   char text[20];
-  sprintf(text, "#ffa500 %.1f°C#", current);
+  sprintf(text, "#50C878 %.1f°C#", current);
   if (lvgl_lock(-1, "gui_set_curr_temp")) {
     lv_label_set_text(label_curr_temp, text);
     lvgl_unlock();
@@ -186,7 +186,7 @@ void gui_set_thermostat_status(ThermostatStatus thermostat_status) {
   if (lvgl_lock(-1, "gui_set_thermostat_status")) {
     switch (thermostat_status) {
       case THERMOSTAT_HEAT:
-        lv_label_set_text(label_thermostat_status, "#ffa500 heating #");
+        lv_label_set_text(label_thermostat_status, "#EE4B2B heating #");
         gui_enable_btns(true);
         break;
       case _THERMOSTAT_IDLE:

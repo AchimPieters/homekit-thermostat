@@ -39,13 +39,13 @@ void on_homekit_update(HomekitState state) {
 
   if (state.current_temp < state.target_temp) {
     if (!relay_turned_on) {
-      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is lower that the target (%.1f). Switching relay ON", state.current_temp, state.target_temp);
+      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is lower than the target (%.1f). Switching relay ON", state.current_temp, state.target_temp);
       relay_on();
     }
     gui_set_thermostat_status(THERMOSTAT_HEAT);
-  } else if (state.current_temp > state.target_temp) {
+  } else if (state.current_temp >= state.target_temp) {
     if (relay_turned_on) {
-      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is higher that the target (%.1f). Switching relay OFF", state.current_temp, state.target_temp);
+      ESP_LOGI("HOMEKIT_UPDATE", "Current temperature (%.1f) is higher or equal than the target (%.1f). Switching relay OFF", state.current_temp, state.target_temp);
       relay_off();
     }
     gui_set_thermostat_status(_THERMOSTAT_IDLE);
