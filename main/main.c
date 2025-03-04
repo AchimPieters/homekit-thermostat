@@ -14,6 +14,7 @@
 #include "gui/scr_wifi_setup.h"
 #include "homekit.h"
 #include "hw/lcd.h"
+#include "hw/led.h"
 #include "hw/relay.h"
 #include "hw/sht40.h"
 #include "wifi.h"
@@ -190,6 +191,7 @@ void app_main() {
   ESP_ERROR_CHECK(ret);
 
   // Init peripherals
+  led_disable();
   sht40_init();
   relay_init();
 

@@ -75,7 +75,8 @@
     "events.h": "c",
     "thread": "cpp",
     "scr_loading.h": "c",
-    "nvs_flash.h": "c"
+    "nvs_flash.h": "c",
+    "led.h": "c"
   },
   "idf.flashType": "JTAG"
 }
