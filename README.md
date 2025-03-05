@@ -2,7 +2,7 @@
 
 > *If you want a smart thermostat that supports Homekit, they are usually quite expensive (\$150+), that's why I decided to build one myself and it cost me less than $40*
 
-- insert a video of how it works !!!!
+https://github.com/user-attachments/assets/f03cbc0a-a529-49a5-ae72-671e549893d3
 
 ## How it works
 
@@ -50,6 +50,10 @@ This is a two-way sync, so whenever the temperature update happens, either in a 
 
 ### Electrical circuit
 This circuit uses an [ESP32-C6](https://www.laskakit.cz/en/espressif-esp32-c6-devkitm-1-wifi-6--bluetooth-5--zigbee/) microcontroller board with the following peripherals:
+
+<p align="center">
+<img src="./assets/enclosure.jpg"/>
+</p>
 
 <p align="center">
 <img src="./assets/diagram.png" width="400" />
