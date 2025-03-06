@@ -169,7 +169,7 @@ void gui_set_curr_temp(float current) {
   }
 
   char text[20];
-  sprintf(text, "#50C878 %.1f°C#", current);
+  sprintf(text, "#e72a86 %.1f°C#", current);
   if (lvgl_lock(-1, "gui_set_curr_temp")) {
     lv_label_set_text(label_curr_temp, text);
     lvgl_unlock();

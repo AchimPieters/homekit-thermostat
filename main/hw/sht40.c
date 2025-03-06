@@ -22,5 +22,12 @@ TempHumidity sht40_measure_temp() {
   TempHumidity temp_humid = {};
   ESP_ERROR_CHECK(sht4x_measure(&sensor, &temp_humid.temperature, &temp_humid.humidity));
 
+
+  // Subtract 1°C as it has been noticed that the sensor is measuring increased values
+  // This is a weird hack, I know, maybe this could be fixed with the sensor calibration
+  // https://www.laskakit.cz/en/laskakit-sht40-senzor-teploty-a-vlhkosti-vzduchu/
+  // but I'm too lazy to do that now, so let's see if this is good enough 😅
+  temp_humid.temperature -= 1;
+
   return temp_humid;
 }
