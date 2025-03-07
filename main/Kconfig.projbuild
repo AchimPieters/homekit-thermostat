@@ -11,13 +11,13 @@ config HOMEKIT_SETUP_ID
         string "HomeKit Setup ID"
         default "XY38"
         help
-					If you want to change the HomeKit Setup ID, you can do that here (Note: you need to make a new QR-CODE To make it work)
+                If you want to change the HomeKit Setup ID, you can do that here (Note: you need to make a new QR-CODE To make it work)
 
 config TEMPERATURE_POLL_PERIOD
         int "Temperature Poll Period"
-        default 10000
+        default 600000
         help
-        	How often should the temperature be measured (in milliseconds)
+                How often should the temperature be measured (default 10min in milliseconds)
 
 config THERMOSTAT_MIN_TEMP
         int "Min thermostat temperature"
