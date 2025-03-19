@@ -61,7 +61,7 @@ This circuit uses an [ESP32-C6](https://www.laskakit.cz/en/espressif-esp32-c6-de
 
 
 #### Thermometer
-For the temperature measuring, this project uses a [SHT-40](https://www.laskakit.cz/en/laskakit-sht40-senzor-teploty-a-vlhkosti-vzduchu/) sensor. It communicates with the ESP32 via I2C and measures the current temperature and humidity every 10 minutes.
+For the temperature measuring, this project uses a [SHT-40](https://www.laskakit.cz/en/laskakit-sht40-senzor-teploty-a-vlhkosti-vzduchu/) sensor. It communicates with the ESP32 via I2C and measures the current temperature and humidity every minute.
 
 | SHT-40 | ESP32 |
 | --- | ---- |

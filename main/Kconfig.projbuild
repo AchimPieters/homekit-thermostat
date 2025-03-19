@@ -15,9 +15,9 @@ config HOMEKIT_SETUP_ID
 
 config TEMPERATURE_POLL_PERIOD
         int "Temperature Poll Period"
-        default 600000
+        default 60000
         help
-                How often should the temperature be measured (default 10min in milliseconds)
+                How often should the temperature be measured (default 1 minute in milliseconds)
 
 config THERMOSTAT_MIN_TEMP
         int "Min thermostat temperature"

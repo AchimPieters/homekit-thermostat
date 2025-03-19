@@ -86,11 +86,13 @@ void gui_main_scr() {
   label_targ_temp = lv_label_create(data_cont);
   lv_label_set_recolor(label_targ_temp, true);
   lv_obj_add_style(label_targ_temp, &style_font48, LV_PART_MAIN);
+  lv_label_set_text(label_targ_temp, "");
 
   // underneath, add a current temperature label
   label_curr_temp = lv_label_create(data_cont);
   lv_label_set_recolor(label_curr_temp, true);
   lv_obj_add_style(label_curr_temp, &style_font26, LV_PART_MAIN);
+  lv_label_set_text(label_curr_temp, "");
 
   // next, add a thermostat status label
   // this label will grow to take all the available white space
@@ -98,15 +100,18 @@ void gui_main_scr() {
   lv_label_set_recolor(label_thermostat_status, true);
   lv_obj_add_style(label_thermostat_status, &style_font26, LV_PART_MAIN);
   lv_obj_set_flex_grow(label_thermostat_status, 1);
+  lv_label_set_text(label_thermostat_status, "");
 
   // at the bottom, add a time label
   time_label = lv_label_create(data_cont);
   lv_label_set_recolor(time_label, true);
   lv_obj_add_style(time_label, &style_font32, LV_PART_MAIN);
+  lv_label_set_text(time_label, "");
 
   // add a date label
   label_date = lv_label_create(data_cont);
   lv_label_set_recolor(label_date, true);
+  lv_label_set_text(label_date, "");
 
   // create buttons container
   // it will take 2/5 of the screen
